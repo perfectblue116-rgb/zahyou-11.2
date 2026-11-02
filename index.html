@@ -1,0 +1,2474 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>ESTELLA - エステート専用座標測定アプリ</title>
+
+<!-- ★ PWA / iOS フルスクリーン対応 -->
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="ESTELLA">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#0a8c6e">
+<!-- アプリアイコン（SVGインライン → base64でPNG生成） -->
+<link rel="apple-touch-icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 255 331'%3E%3Crect width='255' height='331' rx='50' fill='%23ffffff'/%3E%3Cpath fill='%23ffc000' stroke='%23ffc000' stroke-width='2.1' d='m 51.656662,85.034813 47.101155,-0.56195 7.747093,-20.681931 51.04107,-0.531697 8.0889,21.775578 h 51.72047 l 4.21463,73.435197 -4.21463,77.5612 -18.98686,1.40488 -0.002,35.06173 -21.06706,-0.12116 2.23837,23.55662 -16.0197,0.35512 0.85896,28.25911 -65.757657,-2.67457 0.0253,-24.14643 -13.791465,0.30573 0.843223,-26.1824 -18.260659,-0.10502 -3.654563,-35.15166 -12.124709,-0.56195 -8.148281,-11.15488 -2.528777,-84.10775 z'/%3E%3Cpath fill='%23999' stroke='%23000' stroke-width='2.1' d='m 61.252594,12.362909 c 0,0 -9.272181,13.205835 -11.519983,40.460429 -2.247802,27.254595 -10.651371,29.695635 -2.247802,27.254595 14.383286,-4.178008 32.46472,4.426096 32.031174,-0.280975 l -3.933653,-42.708231 106.20863,-1.685851 5.05755,37.088727 25.56874,5.338528 -14.04876,-62.09552 z'/%3E%3Crect fill='%23999' x='66.67' y='201.81' width='126.29' height='68.97'/%3E%3Crect fill='%2372d1fb' x='84.29' y='220.57' width='44.96' height='37.93'/%3E%3Cellipse fill='%23999' cx='132.34' cy='122.36' rx='16.58' ry='15.31'/%3E%3C/svg%3E">
+<!-- xlsx-js-style for Excel export with cell styling -->
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=M+PLUS+1p:wght@300;400;500;700;800;900&family=Share+Tech+Mono&display=swap');
+
+  :root {
+    --bg: #f4f6f8;
+    --surface: #ffffff;
+    --surface2: #eef1f5;
+    --border: #d0d7de;
+    --accent: #0a8c6e;
+    --accent2: #0d7a5f;
+    --accent-dim: rgba(10,140,110,0.10);
+    --text: #1a1f2e;
+    --text-muted: #57606a;
+    --input-bg: #f8fafc;
+    --row-alt: rgba(10,140,110,0.04);
+    --red: #cf222e;
+    --yellow: #9a6700;
+    --mono: 'Share Tech Mono', monospace;
+    --sans: 'M PLUS 1p', sans-serif;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    min-height: 100vh;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  /* Header */
+  .header {
+    background: var(--surface);
+    border-bottom: 3px solid var(--accent);
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header-icon {
+    width: 72px; height: 72px;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+    overflow: hidden;
+  }
+  .header-icon svg {
+    width: 72px;
+    height: 72px;
+    display: block;
+  }
+  .header-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0px;
+  }
+  .header-caption {
+    font-size: 12px;
+    font-weight: 700;
+    color: #555e6b;
+    letter-spacing: 0.04em;
+    line-height: 1.2;
+    font-family: var(--sans);
+  }
+  .header-main {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+  }
+  .header h1 {
+    font-size: 36px;
+    font-weight: 900;
+    letter-spacing: 0.06em;
+    color: var(--text);
+    line-height: 1.0;
+    font-family: var(--sans);
+  }
+  .header span {
+    font-size: 14px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    padding: 2px 7px;
+    border-radius: 10px;
+    border: 1px solid var(--border);
+    white-space: nowrap;
+  }
+
+  /* Tabs */
+  .tabs {
+    display: flex;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 8px;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+  .tabs::-webkit-scrollbar { display: none; }
+  .tab {
+    padding: 10px 14px;
+    cursor: pointer;
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--text-muted);
+    border-bottom: 2px solid transparent;
+    transition: all 0.15s;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+  .tab:hover { color: var(--text); }
+  .tab.active {
+    color: var(--accent);
+    border-bottom-color: var(--accent);
+  }
+
+  .tab-content { display: none; padding: 12px; }
+  .tab-content.active { display: block; }
+
+  /* Section */
+  .section {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin-bottom: 12px;
+    /* overflow: hidden を削除 → sticky列が効かなくなるため */
+    overflow: visible;
+  }
+  .section-header {
+    background: var(--surface2);
+    padding: 7px 12px;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .section-body { padding: 12px; }
+
+  /* 基準点設定: 機械点(左) / 視準点(右) 常に2カラム縦並び */
+  .setup-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px 12px;
+  }
+  /* 左列ヘッダー・右列ヘッダー */
+  .setup-col-header {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    letter-spacing: 0.06em;
+    padding: 4px 6px 2px;
+    border-bottom: 1px solid var(--accent-dim);
+    margin-bottom: 2px;
+    text-align: center;
+  }
+  /* 列ヘッダー行（grid-column span なし、2つ並べる） */
+  .setup-headers {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 12px;
+    margin-bottom: 6px;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 17px;
+    color: var(--text-muted);
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  .field input, .field select {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 19px;
+    padding: 7px 8px;
+    transition: border-color 0.15s;
+    width: 100%;
+    min-height: 36px;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+  }
+  .field select option { background: var(--surface2); }
+
+  /* Ref cards */
+  .ref-results {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 6px;
+    margin-top: 10px;
+  }
+  @media (min-width: 600px) {
+    .ref-results { grid-template-columns: repeat(3, 1fr); }
+  }
+  .ref-card {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    padding: 7px 10px;
+  }
+  .ref-card .label { font-size: 15px; color: var(--text-muted); margin-bottom: 2px; }
+  .ref-card .value { font-family: var(--mono); font-size: 19px; color: var(--accent); }
+
+  /* Buttons */
+  .btn {
+    padding: 7px 14px;
+    border-radius: 5px;
+    border: none;
+    cursor: pointer;
+    font-family: var(--sans);
+    font-size: 16px;
+    font-weight: 600;
+    transition: all 0.15s;
+    min-height: 34px;
+    white-space: nowrap;
+    -webkit-appearance: none;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #0aab88; }
+  .btn-primary:active { background: var(--accent2); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+  }
+  .btn-secondary:hover { color: var(--text); border-color: var(--text-muted); }
+  .btn-danger {
+    background: transparent;
+    color: var(--red);
+    border: 1px solid rgba(207,34,46,0.25);
+    font-size: 15px;
+    padding: 5px 10px;
+    min-height: 30px;
+  }
+  .btn-danger:active { background: rgba(207,34,46,0.1); }
+
+  /* Toolbar */
+  .toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .toolbar-label { font-size: 15px; color: var(--text-muted); }
+  .badge {
+    background: var(--accent-dim);
+    color: var(--accent);
+    border: 1px solid rgba(10,140,110,0.2);
+    border-radius: 10px;
+    font-size: 15px;
+    padding: 2px 8px;
+  }
+
+  /* Table wrapper — horizontal scroll only on the table */
+  .tbl-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    position: relative;
+    border-radius: 0 0 8px 8px;  /* sectionの角丸を代替 */
+  }
+  tbody tr:nth-child(even) td { background: var(--surface2) !important; }
+  tbody tr:nth-child(odd)  td { background: var(--surface)  !important; }
+  table {
+    width: 100%;
+    min-width: 420px;
+    border-collapse: separate;   /* sticky用にseparateが必要 */
+    border-spacing: 0;
+    font-size: 18px;
+  }
+  thead th {
+    background: var(--surface2);
+    padding: 6px 6px;
+    text-align: center;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--text-muted);
+    letter-spacing: 0.04em;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+    position: sticky;
+    top: 0;
+  }
+  tbody tr { border-bottom: 1px solid rgba(208,215,222,0.5); }
+  tbody tr:nth-child(even) { background: var(--row-alt); }
+  tbody tr:hover { background: rgba(10,140,110,0.06); }
+  tbody td {
+    padding: 4px 6px;
+    text-align: center;
+    font-family: var(--mono);
+    font-size: 18px;
+    vertical-align: middle;
+  }
+  td.calc { color: var(--text-muted); }
+  td.calc-hi { color: var(--text); font-weight: 600; }
+  td.angle-dms { font-size: 17px; color: var(--text-muted); }
+
+  /* Editable name cell */
+  td/* ===== 測点名列 + 行番号列: 左固定 ===== */
+
+  /* #列(row-num) */
+  td.row-num {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 0;
+    z-index: 10;
+    min-width: 32px;
+    width: 32px;
+    border-right: 1px solid var(--border);
+  }
+  tbody tr:nth-child(odd)  td.row-num { background: var(--surface)  !important; }
+  tbody tr:nth-child(even) td.row-num { background: var(--surface2) !important; }
+
+  /* 測点名列 */
+  .name-cell {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 32px;
+    z-index: 10;
+    min-width: 80px;
+    max-width: 80px;
+    width: 80px;
+    white-space: nowrap;
+    overflow: hidden;
+    box-shadow: 3px 0 6px rgba(0,0,0,0.12);
+    border-right: 2px solid var(--border);
+  }
+
+  /* ヘッダー固定列 */
+  thead th:nth-child(1) {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 0;
+    z-index: 20;
+    min-width: 32px;
+    width: 32px;
+    background: var(--surface2) !important;
+  }
+  thead th:nth-child(2) {
+    position: -webkit-sticky;
+    position: sticky;
+    left: 32px;
+    z-index: 20;
+    min-width: 80px;
+    width: 80px;
+    background: var(--surface2) !important;
+    box-shadow: 3px 0 6px rgba(0,0,0,0.12);
+    border-right: 2px solid var(--border);
+  }
+
+  /* 奇数行の固定列背景 */
+  tbody tr:nth-child(odd)  td.row-num,
+  tbody tr:nth-child(odd)  td.name-cell {
+    background: var(--surface) !important;
+  }
+  /* 偶数行の固定列背景 */
+  tbody tr:nth-child(even) td.row-num,
+  tbody tr:nth-child(even) td.name-cell {
+    background: var(--surface2) !important;
+  }
+
+  /* name-editable の幅をname-cell内に収める */
+  span.name-editable {
+    display: block !important;
+    width: 76px !important;
+    max-width: 76px !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    white-space: nowrap !important;
+  }
+  span.name-editable {
+    color: var(--accent);
+    font-family: var(--sans);
+    font-weight: 600;
+    font-size: 18px;
+    padding: 3px 5px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    cursor: text;
+    outline: none;
+    transition: border-color 0.1s, background 0.1s;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    -webkit-user-select: text;
+    user-select: text;
+  }
+  span.name-editable:focus {
+    border-color: var(--accent);
+    background: rgba(10,140,110,0.06);
+    white-space: normal;
+    text-overflow: unset;
+  }
+
+  /* Number input in table */
+  tbody td input[type="number"] {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 18px;
+    text-align: center;
+    padding: 3px 2px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+    -webkit-appearance: none;
+    -moz-appearance: textfield;
+    min-height: 28px;
+  }
+  tbody td input[type="number"]:focus {
+    outline: none;
+    background: rgba(10,140,110,0.06);
+    border-color: var(--accent);
+  }
+  tbody td input[type="number"]::-webkit-inner-spin-button,
+  tbody td input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
+
+  .w-coord { width: 106px; }
+  .w-dist  { width: 80px; }
+  .w-dms   { width: 54px; }
+
+  /* Row number */
+  td.row-num {
+    color: var(--text-muted);
+    font-size: 17px;
+    width: 28px;
+    min-width: 28px;
+  }
+
+  /* Direction badge */
+  .dir-badge {
+    display: inline-block;
+    padding: 3px 9px;
+    border-radius: 10px;
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    user-select: none;
+    transition: all 0.15s;
+    min-height: 26px;
+    line-height: 20px;
+  }
+  .dir-R { background: rgba(10,140,110,0.12); color: var(--accent); border: 1px solid rgba(10,140,110,0.3); }
+  .dir-L { background: rgba(154,103,0,0.12); color: var(--yellow); border: 1px solid rgba(154,103,0,0.3); }
+
+  /* Import */
+  .import-area {
+    background: var(--input-bg);
+    border: 1px dashed var(--border);
+    border-radius: 6px;
+    padding: 10px;
+  }
+  .import-area label { font-size: 15px; color: var(--text-muted); display: block; margin-bottom: 6px; }
+  .import-area textarea {
+    width: 100%;
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 16px;
+    resize: vertical;
+    min-height: 72px;
+    outline: none;
+  }
+
+  /* Summary bar */
+  .summary-bar {
+    display: flex;
+    gap: 12px;
+    padding: 8px 12px;
+    background: rgba(10,140,110,0.04);
+    border-top: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .summary-item { font-size: 15px; color: var(--text-muted); }
+  .summary-item span { color: var(--accent); font-family: var(--mono); font-weight: 600; }
+
+  /* Help */
+  .help-box {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 12px 14px;
+    font-size: 16px;
+    color: var(--text-muted);
+    line-height: 1.8;
+  }
+  .help-box strong { color: var(--accent); }
+
+  /* coord-input: text field styled like number input */
+  input.coord-input {
+    background: transparent;
+    border: none;
+    color: var(--text);
+    font-family: var(--mono);
+    font-size: 18px;
+    text-align: center;
+    padding: 3px 2px;
+    border-radius: 3px;
+    border: 1px solid transparent;
+    transition: background 0.1s, border-color 0.1s;
+    min-height: 28px;
+    -webkit-appearance: none;
+    width: 106px;
+  }
+  input.coord-input:focus {
+    outline: none;
+    background: rgba(10,140,110,0.06);
+    border-color: var(--accent);
+  }
+  /* setup-grid coord inputs */
+  .field input.coord-input {
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 5px;
+    font-size: 17px;
+    padding: 7px 8px;
+    min-height: 36px;
+    width: 100%;
+    text-align: left;
+  }
+  .field input.coord-input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 2px var(--accent-dim);
+    background: var(--input-bg);
+  }
+
+  /* Small util */
+  .flex-row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .ml-auto { margin-left: auto; }
+
+  /* Compact toolbar on mobile */
+  @media (max-width: 480px) {
+    .tab-content { padding: 8px; }
+    .toolbar { gap: 5px; padding: 6px 8px; }
+    .btn { padding: 6px 10px; font-size: 15px; }
+  }
+
+  /* ===== iOS PWA フルスクリーン対応 ===== */
+
+  /* safe-area（ノッチ・ホームバー）を考慮した高さ */
+  :root {
+    --sat: env(safe-area-inset-top, 0px);
+    --sab: env(safe-area-inset-bottom, 0px);
+    --sal: env(safe-area-inset-left, 0px);
+    --sar: env(safe-area-inset-right, 0px);
+  }
+
+  html, body {
+    height: 100%;
+    /* dvh: iOSのアドレスバー伸縮を正確に追跡 */
+    min-height: 100dvh;
+    overscroll-behavior: none;
+  }
+
+  body {
+    /* ホーム画面から起動時: ノッチ上部を背景色で埋める */
+    padding-top: var(--sat);
+    padding-bottom: var(--sab);
+    padding-left: var(--sal);
+    padding-right: var(--sar);
+    min-height: 100dvh;
+  }
+
+  /* sticky header はノッチを考慮して上に貼り付く */
+  .header {
+    top: 0;
+    /* PWAモードではすでにbodyにpadding-topがあるので追加不要 */
+  }
+
+  /* ホームバー上の余白をtoolbar/summaryに確保 */
+  .summary-bar:last-child,
+  .tab-content:last-child > .section:last-child {
+    padding-bottom: calc(12px + var(--sab));
+  }
+
+  /* ===== ホーム画面追加バナー（iOS Safari のみ表示） ===== */
+  #pwa-banner {
+    display: none;
+    position: fixed;
+    bottom: calc(16px + var(--sab));
+    left: 12px;
+    right: 12px;
+    background: #1a1f2e;
+    color: #fff;
+    border-radius: 12px;
+    padding: 12px 14px;
+    z-index: 20000;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.35);
+    font-size: 16px;
+    line-height: 1.6;
+    animation: slide-up 0.3s ease-out;
+  }
+  #pwa-banner.show { display: flex; gap: 10px; align-items: flex-start; }
+  @keyframes slide-up {
+    from { transform: translateY(20px); opacity: 0; }
+    to   { transform: translateY(0);    opacity: 1; }
+  }
+  #pwa-banner .banner-icon { font-size: 22px; flex-shrink: 0; margin-top: 2px; }
+  #pwa-banner .banner-text { flex: 1; }
+  #pwa-banner .banner-title { font-weight: 700; font-size: 15px; margin-bottom: 2px; }
+  #pwa-banner .banner-sub { color: rgba(255,255,255,0.7); font-size: 13px; }
+  #pwa-banner .banner-close {
+    background: rgba(255,255,255,0.15);
+    border: none;
+    color: #fff;
+    font-size: 18px;
+    border-radius: 6px;
+    width: 28px; height: 28px;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+
+  /* ===== 現場管理モーダル ===== */
+  #site-modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.55);
+    z-index: 10000;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+    padding-bottom: calc(16px + var(--sab));
+  }
+  #site-modal-overlay.open { display: flex; }
+
+  #site-modal {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    width: 100%;
+    max-width: 420px;
+    max-height: 88dvh;
+    display: flex;
+    flex-direction: column;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    overflow: hidden;
+  }
+
+  .site-modal-header {
+    background: var(--surface2);
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-shrink: 0;
+  }
+  .site-modal-header h2 { font-size: 16px; font-weight: 700; color: var(--text); flex: 1; }
+  .site-count {
+    font-size: 13px;
+    color: var(--accent);
+    background: var(--accent-dim);
+    padding: 2px 8px;
+    border-radius: 10px;
+    border: 1px solid rgba(10,140,110,0.2);
+  }
+
+  .site-new-form {
+    padding: 12px 14px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    background: rgba(10,140,110,0.03);
+    flex-shrink: 0;
+  }
+  .site-new-form input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--input-bg);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text);
+    font-family: var(--sans);
+    font-size: 17px;
+    padding: 12px 14px;
+    min-height: 48px;
+    outline: none;
+    transition: border-color 0.15s;
+    -webkit-appearance: none;
+  }
+  .site-new-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  .site-create-btn {
+    width: 100% !important;
+    min-height: 48px !important;
+    font-size: 16px !important;
+    font-weight: 700 !important;
+    border-radius: 8px !important;
+    letter-spacing: 0.03em;
+  }
+
+  .site-list { overflow-y: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+  .site-list-empty {
+    padding: 36px 16px;
+    text-align: center;
+    color: var(--text-muted);
+    font-size: 14px;
+    line-height: 2.2;
+  }
+  .site-list-empty .big { font-size: 32px; display: block; margin-bottom: 8px; }
+
+  .site-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 14px;
+    border-bottom: 1px solid rgba(208,215,222,0.5);
+    gap: 10px;
+    cursor: pointer;
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 56px;
+  }
+  .site-item:active { background: rgba(10,140,110,0.08); }
+  .site-item.current { background: var(--accent-dim); }
+  .site-icon {
+    width: 34px; height: 34px;
+    background: var(--surface2);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 18px;
+    flex-shrink: 0;
+    border: 1px solid var(--border);
+  }
+  .site-item.current .site-icon { background: var(--accent); border-color: var(--accent); }
+  .site-info { flex: 1; min-width: 0; }
+  .site-name { font-size: 15px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .site-item.current .site-name { color: var(--accent); }
+  .site-meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .site-current-badge {
+    font-size: 12px; color: var(--accent);
+    background: rgba(10,140,110,0.12);
+    border: 1px solid rgba(10,140,110,0.25);
+    border-radius: 8px;
+    padding: 2px 7px;
+    flex-shrink: 0;
+    display: none;
+    white-space: nowrap;
+  }
+  .site-item.current .site-current-badge { display: block; }
+  .site-delete-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 20px; cursor: pointer; padding: 6px; border-radius: 4px;
+    transition: color 0.1s, background 0.1s; flex-shrink: 0; line-height: 1;
+    min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center;
+  }
+  .site-delete-btn:active { color: var(--red); background: rgba(207,34,46,0.08); }
+
+  /* ヘッダー現場バッジ */
+  .header-site-name {
+    font-size: 13px; color: #fff;
+    background: var(--accent);
+    padding: 4px 10px; border-radius: 10px;
+    max-width: 130px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+    cursor: pointer; flex-shrink: 0;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 26px; display: flex; align-items: center;
+  }
+  .header-site-name:active { background: var(--accent2); }
+
+  /* 保存インジケーター */
+  .save-indicator { font-size: 12px; color: var(--text-muted); display: none; gap: 4px; align-items: center; white-space: nowrap; }
+  .save-indicator.show { display: flex; }
+  .save-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: pulse-dot 1.2s ease-in-out; }
+  @keyframes pulse-dot {
+    0%,100% { opacity:1; transform:scale(1); }
+    50% { opacity:0.4; transform:scale(1.4); }
+  }
+
+
+  /* ===== ポイント名ドロップダウン ===== */
+  .point-input-wrap {
+    position: relative;
+    width: 100%;
+  }
+  .point-input-wrap input {
+    width: 100%;
+    box-sizing: border-box;
+    padding-right: 32px !important; /* ▼アイコン分 */
+  }
+  .point-dropdown-arrow {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 12px;
+    pointer-events: none;
+    line-height: 1;
+  }
+  .point-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    background: var(--surface);
+    border: 1.5px solid var(--accent);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.18);
+    z-index: 5000;
+    max-height: 220px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .point-dropdown.open { display: block; }
+  .point-dropdown-empty {
+    padding: 12px 14px;
+    font-size: 13px;
+    color: var(--text-muted);
+    text-align: center;
+  }
+  .point-dropdown-item {
+    display: flex;
+    align-items: center;
+    padding: 10px 14px;
+    gap: 10px;
+    cursor: pointer;
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 44px;
+  }
+  .point-dropdown-item:last-child { border-bottom: none; }
+  .point-dropdown-item:active,
+  .point-dropdown-item.selected { background: var(--accent-dim); }
+  .point-dropdown-item .pd-name {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--accent);
+    min-width: 48px;
+  }
+  .point-dropdown-item .pd-coords {
+    font-size: 12px;
+    color: var(--text-muted);
+    font-family: var(--mono);
+  }
+  .point-dropdown-item.selected .pd-name { color: var(--accent); }
+  .point-dropdown-item .pd-check {
+    margin-left: auto;
+    font-size: 16px;
+    display: none;
+  }
+  .point-dropdown-item.selected .pd-check { display: block; }
+
+</style>
+</head>
+<body>
+
+<!-- PWA ホーム画面追加バナー -->
+<div id="pwa-banner">
+  <div class="banner-icon">📲</div>
+  <div class="banner-text">
+    <div class="banner-title">ホーム画面に追加するとアプリとして使えます</div>
+    <div class="banner-sub">Safari下部の「共有」→「ホーム画面に追加」をタップ</div>
+  </div>
+  <button class="banner-close" onclick="dismissBanner()">✕</button>
+</div>
+
+<!-- 現場管理モーダル -->
+<div id="site-modal-overlay">
+  <div id="site-modal">
+    <div class="site-modal-header">
+      <span style="font-size:20px;">🏗</span>
+      <h2>現場を選択・作成</h2>
+      <span class="site-count" id="site-count">0件</span>
+    </div>
+    <div class="site-new-form">
+      <input type="text" id="site-new-input"
+             placeholder="現場名を入力（例: ○○邸新築工事）"
+             maxlength="40"
+             onkeydown="if(event.key==='Enter')siteCreate()">
+      <button class="btn btn-primary site-create-btn" onclick="siteCreate()">＋ 現場を作成</button>
+    </div>
+    <div class="site-list" id="site-list">
+      <div class="site-list-empty">
+        <span class="big">🏗</span>
+        現場がまだありません<br>
+        上のフォームから作成してください
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="header">
+  <div class="header-icon"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 255 331" width="72" height="72">
+  <path style="fill:#ffc000;stroke:#ffc000;stroke-width:2.1;stroke-opacity:1" d="m 51.656662,85.034813 47.101155,-0.56195 7.747093,-20.681931 51.04107,-0.531697 8.0889,21.775578 h 51.72047 l 4.21463,73.435197 -4.21463,77.5612 -18.98686,1.40488 -0.002,35.06173 -21.06706,-0.12116 2.23837,23.55662 -16.0197,0.35512 0.85896,28.25911 -65.757657,-2.67457 0.0253,-24.14643 -13.791465,0.30573 0.843223,-26.1824 -18.260659,-0.10502 -3.654563,-35.15166 -12.124709,-0.56195 -8.148281,-11.15488 -2.528777,-84.10775 z"/>
+  <path style="fill:#999999;stroke:#000000;stroke-width:2.1" d="m 61.252594,12.362909 c 0,0 -9.272181,13.205835 -11.519983,40.460429 -2.247802,27.254595 -10.651371,29.695635 -2.247802,27.254595 14.383286,-4.178008 32.46472,4.426096 32.031174,-0.280975 l -3.933653,-42.708231 106.20863,-1.685851 5.05755,37.088727 25.56874,5.338528 -14.04876,-62.09552 z"/>
+  <rect style="fill:#999999;stroke:#999999;stroke-width:2.25;stroke-opacity:1" width="126.29" height="68.97" x="66.67" y="201.81"/>
+  <rect style="fill:#72d1fb;fill-opacity:1;stroke:#72d1fb;stroke-width:2.1;stroke-opacity:1" width="44.96" height="37.93" x="84.29" y="220.57"/>
+  <ellipse style="fill:#999999;fill-opacity:1;stroke:none" cx="132.34" cy="122.36" rx="16.58" ry="15.31"/>
+  <path style="fill:#000000" d="M 94.75,327.9199 C 93.244568,327.04307 93,325.3004 93,315.45031 V 304 h -5.277494 c -3.158077,0 -6.170042,-0.62516 -7.5,-1.5567 C 78.167084,301.00362 78,300.10148 78,290.4433 V 280 h -8.8 c -5.511111,0 -9.248485,-0.44848 -10,-1.2 C 58.359152,277.95915 58,272.42222 58,260.3 V 243 H 53.960162 C 48.783636,243 42.808748,239.94302 39.834215,235.77264 37.690486,232.76707 37.5,231.48958 37.5,220.11838 c 0,-11.72721 0.112816,-12.42356 2.1345,-13.17505 1.394481,-0.51835 2.867933,-0.27971 4.25,0.68832 1.896366,1.32827 2.1155,2.44597 2.1155,10.7902 0,7.90289 0.312952,9.70629 2.07258,11.94329 1.61049,2.04741 2.948215,2.63486 6,2.63486 H 58 v -17.42857 c 0,-14.51082 0.263076,-17.69165 1.571429,-19 C 60.868531,195.27433 63.925019,195 77.079968,195 h 15.93711 L 92.758539,140.25 92.5,85.5 72.274229,85.229372 52.048459,84.958743 51.551303,87.229372 C 51.277867,88.478217 50.061594,96.25 48.848473,104.5 47.017367,116.95271 46.545766,125.69453 46.0714,155.97719 l -0.5714,36.4772 -2.690253,0.94483 C 38.570759,194.88799 37,192.85438 37,185.87756 V 180 h -8.3 c -5.122222,0 -8.759438,-0.45944 -9.5,-1.2 -1.698766,-1.69877 -1.698766,-42.90123 0,-44.6 0.737062,-0.73706 4.344884,-1.2 9.351979,-1.2 h 8.151979 l 0.570831,-8.75 c 0.313957,-4.8125 1.7088,-17.3 3.099649,-27.75 1.39085,-10.45 2.991185,-24.427272 3.556301,-31.060605 C 45.511637,46.882798 52.149416,23.428147 58.983594,12.25 L 60.970603,9 h 70.859707 c 81.64107,0 72.04369,-1.4802128 77.72361,11.987385 6.55122,15.53355 11.43306,37.085639 11.44206,50.513813 0.002,3.300659 1.3532,15.450659 3.00219,27 3.53442,24.754692 4.87548,45.997862 3.11182,49.293282 -1.47437,2.75488 -6.60274,3.04887 -7.94618,0.45552 -0.49861,-0.9625 -1.18701,-8.725 -1.52978,-17.25 -0.34277,-8.525 -1.63815,-22.25 -2.87862,-30.5 L 212.5,85.5 192.25,85.229295 172,84.958589 V 139.97929 195 h 15.87756 c 13.53582,0 16.07997,0.24343 17.25,1.6505 1.0173,1.22341 1.45381,6.13994 1.6869,19 L 207.12892,233 h 3.43554 c 2.10221,0 4.21174,-0.7762 5.43554,-2 1.91416,-1.91416 2,-3.33333 2,-33.06574 0,-19.50206 0.38533,-31.78574 1.03518,-33 1.39649,-2.60935 6.53315,-2.60935 7.92964,0 0.56935,1.06384 1.03518,3.31384 1.03518,5 V 173 h 8.46482 c 7.34546,0 8.6017,0.25578 9.5,1.93426 C 246.57605,176.07636 247,184.79032 247,196.21175 247,220.44891 247.20865,220 235.9433,220 H 228 l -0.022,4.25 C 227.92265,234.96807 220.19352,243 209.9349,243 H 206 v 17.3 c 0,12.12222 -0.35915,17.65915 -1.2,18.5 -0.75152,0.75152 -4.48889,1.2 -10,1.2 H 186 v 10.42857 C 186,303.00754 185.37965,304 177.51705,304 h -5.3401 l -0.33847,10.84959 c -0.22756,7.29408 -0.78824,11.39044 -1.71092,12.5 -1.23005,1.47917 -5.12099,1.64725 -37.5,1.62 C 109.95491,328.95051 95.848251,328.55957 94.75,327.9199 Z M 162,312 v -8 h -30 -30 v 8 8 h 30 30 z M 176.79569,287.25 176.5,280.5 132.25,280.2396 88,279.9792 V 286.9896 294 h 44.54569 44.54569 z M 192,238 v -33 h -30.56574 c -19.1574,0 -31.28768,-0.38637 -32.5,-1.03518 -2.3709,-1.26887 -2.5043,-4.67745 -0.27927,-7.13608 1.47067,-1.62508 3.4196,-1.82874 17.5,-1.82874 H 162 v -6 -6 h -30 -30 v 6 6 h 4.5 c 6.84066,0 10.68298,4.67416 6.92857,8.42857 C 112.09555,204.76159 108.5303,205 89.928571,205 H 68 v 33 33 h 62 62 z M 78.75,260.9199 C 77.168214,259.9986 77,257.80993 77,238.15031 77,222.56674 77.340229,216.05977 78.2,215.2 c 1.711325,-1.71133 55.88867,-1.71133 57.6,0 0.85982,0.85982 1.2,7.36996 1.2,22.96482 0,20.49478 -0.11287,21.82522 -1.93426,22.8 -2.58484,1.38336 -53.933849,1.34241 -56.31574,-0.0449 z M 127,238 V 224 H 106.5 86 v 12.41821 c 0,6.83002 0.273145,13.13002 0.606989,14 C 87.132336,251.78724 89.889655,252 107.10699,252 H 127 Z m 19.57143,22.42857 c -1.86505,-1.86505 -2.05418,-5.54582 -0.37143,-7.22857 0.66,-0.66 2.82,-1.2 4.8,-1.2 4.31594,0 6,1.44964 6,5.16482 0,4.48592 -7.01193,6.6804 -10.42857,3.26375 z m 15.96504,-0.38828 c -2.36278,-2.61084 -1.33891,-6.80079 1.85793,-7.60314 4.6147,-1.15822 8.00787,-0.11142 9.01959,2.78257 1.96508,5.62105 -6.6842,9.45414 -10.87752,4.82057 z m 17.2944,0.70971 c -4.36071,-3.51354 -1.95143,-8.75 4.02583,-8.75 4.4549,0 6.1433,1.41947 6.1433,5.16482 0,4.29187 -6.46375,6.57071 -10.16913,3.58518 z m -33.25944,-19.32143 c -1.86505,-1.86505 -2.05418,-5.54582 -0.37143,-7.22857 0.66,-0.66 2.82,-1.2 4.8,-1.2 4.31594,0 6,1.44964 6,5.16482 0,4.48592 -7.01193,6.6804 -10.42857,3.26375 z m 16.08356,-0.25731 C 159.22313,237.3791 161.81964,233 167.5,233 c 5.76345,0 8.49677,4.88297 4.67126,8.34501 -2.42729,2.19667 -7.45414,2.10488 -9.51627,-0.17375 z m 17.17588,0.57874 c -4.36071,-3.51354 -1.95143,-8.75 4.02583,-8.75 4.4549,0 6.1433,1.41947 6.1433,5.16482 0,4.29187 -6.46375,6.57071 -10.16913,3.58518 z m -33.25944,-19.32143 c -1.86505,-1.86505 -2.05418,-5.54582 -0.37143,-7.22857 0.66,-0.66 2.82,-1.2 4.8,-1.2 4.26313,0 6,1.44739 6,5 0,1.43 -0.54,3.14 -1.2,3.8 -1.71162,1.71162 -7.37339,1.48375 -9.22857,-0.37143 z m 16.08356,-0.25731 C 159.22313,218.3791 161.81964,214 167.5,214 c 5.76345,0 8.49677,4.88297 4.67126,8.34501 -2.42729,2.19667 -7.45414,2.10488 -9.51627,-0.17375 z m 16.62269,0.57874 c -3.41869,-4.41823 -1.1518,-8.75 4.57902,-8.75 2.05882,0 4.2833,0.54 4.9433,1.2 1.90147,1.90147 1.45796,6.59158 -0.73426,7.76482 -2.65732,1.42215 -7.6152,1.30096 -8.78806,-0.21482 z M 162,125 C 162,83.51241 161.80126,77 160.53518,77 158.43796,77 157,73.772677 157,69.065741 V 65 h -24.94774 -24.94774 l -0.30226,5.25 c -0.24919,4.328252 -0.69729,5.423311 -2.55226,6.237128 L 102,77.474257 V 125.23713 173 h 30 30 z m -37.53976,19.99553 c -4.35047,-1.35069 -11.17195,-7.51736 -13.6647,-12.35298 -2.6121,-5.06715 -2.81049,-14.39723 -0.42226,-19.85834 2.08282,-4.76274 7.66273,-10.3376 12.41093,-12.39968 4.71568,-2.047958 13.65702,-2.123181 18.28852,-0.15386 9.52953,4.05199 15.56014,13.85332 14.65635,23.82046 -0.28051,3.09351 -1.22117,6.99978 -2.09035,8.6806 -2.03105,3.92761 -6.99875,8.88596 -10.94966,10.92906 -3.68983,1.90808 -13.96003,2.66008 -18.22883,1.33474 z m 11.27187,-13.1739 c 5.14338,-3.12321 7.70057,-7.49443 7.73659,-13.22478 0.0286,-4.55855 -0.25635,-5.17556 -3.36658,-7.2885 -4.1443,-2.81542 -10.99312,-3.07652 -15.21907,-0.58019 -1.60904,0.95048 -3.84188,3.62107 -4.96186,5.93465 -2.70329,5.58423 -1.79594,10.64972 2.71736,15.17035 2.88325,2.88792 3.76413,3.24085 6.59461,2.64212 1.79676,-0.38006 4.72129,-1.57421 6.49895,-2.65365 z M 127.74524,127.25 c -1.59542,-1.78432 -2.07482,-3.43792 -1.86372,-6.42857 0.34178,-4.84218 8.67803,-6.71605 11.56178,-2.59892 2.08833,2.98151 1.96083,4.99401 -0.51588,8.14263 -2.43837,3.09988 -6.82378,3.52249 -9.18218,0.88486 z M 111.2,85.8 c -1.5425,-1.542501 -1.5425,-5.057499 0,-6.6 0.85438,-0.854379 7.03663,-1.2 21.46482,-1.2 19.63871,0 20.29995,0.06565 21.40208,2.125 0.86599,1.61813 0.83408,2.691502 -0.1338,4.5 L 152.66204,87 H 132.53102 C 118.20689,87 112.05385,86.653854 111.2,85.8 Z M 73.435805,73.75 C 72.122702,70.045122 71.727548,32.377598 72.977288,30.042438 74.058597,28.021993 74.693205,28 131.91274,28 c 48.76436,0 58.02745,0.223002 59.02161,1.420899 1.3728,1.654119 1.0967,41.906621 -0.30749,44.829101 -0.76251,1.586989 -0.13225,1.75 6.76615,1.75 H 205 V 72.572359 C 205,68.334699 203.30812,55.205638 201.89792,48.5 200.55395,42.10934 195.20047,25.336712 193.35987,21.75 L 191.94864,19 H 129.09746 66.246288 l -2.005382,4.75 C 57.876263,38.825458 53,59.730773 53,71.941553 V 76 h 10.616631 c 10.579457,0 10.613839,-0.0079 9.819174,-2.25 z m 19.750837,-1 C 93.401593,70.520625 94.206587,69.190004 95.75,68.512872 97.610367,67.696684 98,66.735589 98,62.962872 98,60.453292 98.54,57.86 99.2,57.2 c 1.71648,-1.716477 63.88352,-1.716477 65.6,0 0.66,0.66 1.2,3.144647 1.2,5.521439 0,3.631401 0.39654,4.502114 2.48338,5.452942 1.65813,0.755494 2.69204,2.243761 3.11129,4.478561 C 172.17741,75.759227 172.49894,76 176.06429,76 c 3.58749,0 3.91061,-0.248142 4.88313,-3.75 0.57278,-2.0625 1.04394,-10.8375 1.047,-19.5 L 182,37 H 132 82 v 15.05718 c 0,8.281449 0.503422,17.056449 1.118715,19.5 C 84.22625,75.9556 84.280582,76 88.555357,76 c 4.140561,0 4.330798,-0.133498 4.631285,-3.25 z M 53.75,128.9199 c -2.01024,-1.17086 -2.348677,-5.92122 -0.55,-7.7199 1.674942,-1.67494 29.925058,-1.67494 31.6,0 1.901469,1.90147 1.457962,6.59158 -0.734259,7.76482 -2.491949,1.33365 -28.013807,1.29583 -30.315741,-0.0449 z m 126.47251,-0.4766 c -2.75363,-1.92872 -2.91219,-6.00383 -0.28825,-7.40812 C 181.00327,120.46306 188.12854,120 195.86283,120 210.6852,120 213,120.67736 213,125.01472 213,128.97251 209.39316,130 195.5,130 c -10.19732,0 -13.54148,-0.34075 -15.27749,-1.5567 z"/>
+</svg></div>
+  <div class="header-text">
+    <div class="header-caption">エステート専用<br>座標測定WEBアプリ</div>
+    <div class="header-main">
+      <h1>ESTELLA</h1>
+      <span id="save-indicator" class="save-indicator"><span class="save-dot"></span>保存</span>
+      <div style="margin-left:auto;">
+        <span id="header-site-name" class="header-site-name" onclick="openSiteModal()">現場未選択</span>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="tabs">
+  <div class="tab active" onclick="switchTab('tab1')">座標 → 距離・角度</div>
+  <div class="tab" onclick="switchTab('tab2')">距離・角度 → 座標</div>
+  <div class="tab" onclick="switchTab('tab3')">操作方法</div>
+</div>
+
+<!-- ===== TAB1: 座標→距離・角度 ===== -->
+<div id="tab1" class="tab-content active">
+
+  <div class="section">
+    <div class="section-header">⚙ 基準点設定</div>
+    <div class="section-body">
+      <div class="setup-headers">
+        <div class="setup-col-header">🔴 機械点</div>
+        <div class="setup-col-header">🔵 視準点</div>
+      </div>
+      <div class="setup-grid">
+        <div class="field">
+          <label>ポイント名</label>
+          <div class="point-input-wrap" id="t1_mech_wrap">
+            <input type="text" id="t1_mech_name" value="K1"
+              oninput="t1OnMechNameChange(); filterPointDropdown('t1_mech')"
+              onfocus="openPointDropdown('t1_mech','t1')"
+              autocomplete="off" readonly>
+            <span class="point-dropdown-arrow">▼</span>
+            <div class="point-dropdown" id="t1_mech_dropdown"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>ポイント名</label>
+          <div class="point-input-wrap" id="t1_vis_wrap">
+            <input type="text" id="t1_vis_name" value="K2"
+              oninput="t1OnVisNameChange(); filterPointDropdown('t1_vis')"
+              onfocus="openPointDropdown('t1_vis','t1')"
+              autocomplete="off" readonly>
+            <span class="point-dropdown-arrow">▼</span>
+            <div class="point-dropdown" id="t1_vis_dropdown"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>X座標</label>
+          <input type="text" id="t1_mech_x" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't1RecalcAll')" oninput="coordInput(this, 't1RecalcAll')">
+        </div>
+        <div class="field">
+          <label>X座標</label>
+          <input type="text" id="t1_vis_x" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't1RecalcAll')" oninput="coordInput(this, 't1RecalcAll')">
+        </div>
+        <div class="field">
+          <label>Y座標</label>
+          <input type="text" id="t1_mech_y" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't1RecalcAll')" oninput="coordInput(this, 't1RecalcAll')">
+        </div>
+        <div class="field">
+          <label>Y座標</label>
+          <input type="text" id="t1_vis_y" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't1RecalcAll')" oninput="coordInput(this, 't1RecalcAll')">
+        </div>
+      </div>
+      <div class="ref-results">
+        <div class="ref-card"><div class="label">機械→視準 距離</div><div class="value" id="r_dist">—</div></div>
+        <div class="ref-card"><div class="label">測量角度（右回り）</div><div class="value" id="r_right">—</div></div>
+        <div class="ref-card"><div class="label">測量角度（左回り）</div><div class="value" id="r_left">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">📊 計算点一覧</div>
+    <div class="toolbar">
+      <span class="toolbar-label">行数:</span>
+      <span class="badge" id="t1_rowcount">0</span>
+      <button class="btn btn-primary" onclick="t1AddRow()">＋ 行追加</button>
+      <button class="btn btn-secondary" onclick="t1AddRows10()">10行追加</button>
+      <button class="btn btn-secondary" onclick="t1ClearAll()">クリア</button>
+      <div class="ml-auto flex-row">
+        <button class="btn btn-secondary" onclick="t1ExportExcel()">Excel</button>
+        <button class="btn btn-secondary" onclick="t1ExportTSV()">コピー</button>
+      </div>
+    </div>
+    <div class="tbl-wrapper">
+      <table id="t1_table">
+        <thead>
+          <tr>
+            <th style="width:32px;min-width:32px">#</th>
+            <th style="min-width:72px;width:72px">測点名</th>
+            <th style="min-width:90px">X座標</th>
+            <th style="min-width:90px">Y座標</th>
+            <th style="min-width:80px">距離</th>
+            <th style="min-width:56px">度°</th>
+            <th style="min-width:46px">分′</th>
+            <th style="min-width:46px">秒″</th>
+            <th style="min-width:56px">向き<br><span style="font-size:12px;font-weight:400;color:var(--text-muted)">自動/手動</span></th>
+            <th style="min-width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="t1_tbody"></tbody>
+      </table>
+    </div>
+    <div class="summary-bar" id="t1_summary"></div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">📥 座標データインポート（CSV / タブ区切り）</div>
+    <div class="section-body">
+      <div class="help-box" style="margin-bottom:10px;">
+        フォーマット：<strong>ポイント名, X座標, Y座標</strong>（1行1点、カンマまたはタブ区切り）<br>
+        例: <code>K1, 12345.678, 98765.432</code>
+      </div>
+      <div class="import-area">
+        <label>データを貼り付け（複数行可）</label>
+        <textarea id="t1_import_text" placeholder="K1, 12345.678, 98765.432&#10;K2, 12350.000, 98770.000&#10;..."></textarea>
+      </div>
+      <div style="margin-top:8px;" class="flex-row">
+        <button class="btn btn-primary" onclick="t1ImportData()">インポート実行</button>
+        <button class="btn btn-secondary" onclick="document.getElementById('t1_import_text').value=''">クリア</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== TAB2: 距離・角度→座標 ===== -->
+<div id="tab2" class="tab-content">
+
+  <div class="section">
+    <div class="section-header">⚙ 基準点設定</div>
+    <div class="section-body">
+      <div class="setup-headers">
+        <div class="setup-col-header">🔴 機械点</div>
+        <div class="setup-col-header">🔵 視準点</div>
+      </div>
+      <div class="setup-grid">
+        <div class="field">
+          <label>ポイント名</label>
+          <div class="point-input-wrap" id="t2_mech_wrap">
+            <input type="text" id="t2_mech_name" value="K1"
+              oninput="t2OnMechNameChange(); filterPointDropdown('t2_mech')"
+              onfocus="openPointDropdown('t2_mech','t1')"
+              autocomplete="off" readonly>
+            <span class="point-dropdown-arrow">▼</span>
+            <div class="point-dropdown" id="t2_mech_dropdown"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>ポイント名</label>
+          <div class="point-input-wrap" id="t2_vis_wrap">
+            <input type="text" id="t2_vis_name" value="K2"
+              oninput="t2OnVisNameChange(); filterPointDropdown('t2_vis')"
+              onfocus="openPointDropdown('t2_vis','t1')"
+              autocomplete="off" readonly>
+            <span class="point-dropdown-arrow">▼</span>
+            <div class="point-dropdown" id="t2_vis_dropdown"></div>
+          </div>
+        </div>
+        <div class="field">
+          <label>X座標</label>
+          <input type="text" id="t2_mech_x" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't2RecalcAll')" oninput="coordInput(this, 't2RecalcAll')">
+        </div>
+        <div class="field">
+          <label>X座標</label>
+          <input type="text" id="t2_vis_x" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't2RecalcAll')" oninput="coordInput(this, 't2RecalcAll')">
+        </div>
+        <div class="field">
+          <label>Y座標</label>
+          <input type="text" id="t2_mech_y" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't2RecalcAll')" oninput="coordInput(this, 't2RecalcAll')">
+        </div>
+        <div class="field">
+          <label>Y座標</label>
+          <input type="text" id="t2_vis_y" value="0" class="coord-input" onfocus="coordFocus(this)" onblur="coordBlur(this, 't2RecalcAll')" oninput="coordInput(this, 't2RecalcAll')">
+        </div>
+      </div>
+      <div class="ref-results">
+        <div class="ref-card"><div class="label">機械→視準 距離</div><div class="value" id="t2_ref_dist">—</div></div>
+        <div class="ref-card"><div class="label">測量角度（右回り）</div><div class="value" id="t2_ref_right">—</div></div>
+        <div class="ref-card"><div class="label">測量角度（左回り）</div><div class="value" id="t2_ref_left">—</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">📊 計算点一覧</div>
+    <div class="toolbar">
+      <span class="toolbar-label">行数:</span>
+      <span class="badge" id="t2_rowcount">0</span>
+      <button class="btn btn-primary" onclick="t2AddRow()">＋ 行追加</button>
+      <button class="btn btn-secondary" onclick="t2AddRows10()">10行追加</button>
+      <button class="btn btn-secondary" onclick="t2ClearAll()">クリア</button>
+      <div class="ml-auto">
+        <button class="btn btn-secondary" onclick="t2ExportExcel()">Excel</button>
+      </div>
+    </div>
+    <div class="tbl-wrapper">
+      <table id="t2_table">
+        <thead>
+          <tr>
+            <th style="width:32px;min-width:32px">#</th>
+            <th style="min-width:72px;width:72px">測点名</th>
+            <th style="min-width:80px">距離</th>
+            <th style="min-width:56px">度°</th>
+            <th style="min-width:46px">分′</th>
+            <th style="min-width:46px">秒″</th>
+            <th style="min-width:56px">向き</th>
+            <th style="min-width:90px">X座標</th>
+            <th style="min-width:90px">Y座標</th>
+            <th style="min-width:36px"></th>
+          </tr>
+        </thead>
+        <tbody id="t2_tbody"></tbody>
+      </table>
+    </div>
+    <div class="summary-bar" id="t2_summary"></div>
+  </div>
+</div>
+
+<!-- ===== TAB3: 操作方法 ===== -->
+<div id="tab3" class="tab-content">
+  <div class="section">
+    <div class="section-header">📖 操作方法</div>
+    <div class="section-body">
+      <div class="help-box">
+        <p><strong>【座標 → 距離・角度】タブ</strong></p>
+        <p>1. 「基準点設定」で機械点のポイント名とX・Y座標を入力。</p>
+        <p>2. 視準点のポイント名とX・Y座標を入力。基準角度が自動設定されます。</p>
+        <p>3. 機械点・視準点のポイント名を変更すると、計算点一覧の同名行のXY座標が自動反映されます。</p>
+        <p>4. 「計算点一覧」に各測点のポイント名・X座標・Y座標を入力すると、距離・測量角度が自動計算されます。</p>
+        <p>5. 測点名はクリックして直接編集・コピー＆ペーストが可能です。</p>
+        <p>6. 向き（L/R）は自動判定されます（JWW準拠: 右旋・左旋のうち小さい方を表示）。タップで手動切替も可能です。</p>
+        <br>
+        <p><strong>【距離・角度 → 座標】タブ</strong></p>
+        <p>1. 機械点・視準点を設定（座標入力）。</p>
+        <p>2. 各測点の距離・角度（度・分・秒）を入力するとX・Y座標が自動計算されます。</p>
+        <p>3. 向き「L」=左回り（視準点より左）、「R」=右回り（視準点より右）。</p>
+        <br>
+        <p><strong>【距離表示について】</strong></p>
+        <p>距離は小数点以下3桁（0.000）で表示。4桁目以降は切り上げ処理しています。</p>
+        <br>
+        <p><strong>【測量角度の定義】</strong></p>
+        <p>・測量角度（右回り）: 視準点方向を0°として、右回り（時計回り）で表した角度</p>
+        <p>・測量角度（左回り）: 視準点方向を0°として、左回り（反時計回り）で表した角度</p>
+        <p>・度°分′秒″: 向き（L/R）に応じた角度の60進数表記</p>
+        <br>
+        <p><strong>【JWW連携について】</strong></p>
+        <p>JWW内で「測定」→「座標測定」を選択し、基準点（機械設置点）を指定。視準点を選択後、「測定結果書き込み」で座標値を記録し、本ツールに貼り付けてご使用ください。</p>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// =============================================
+// Utility
+// =============================================
+
+/**
+ * 距離を小数点3桁、四捨五入
+ */
+function fmtDist(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  // 小数3桁表示（四捨五入）
+  const rounded = Math.round(v * 1000) / 1000;
+  return rounded.toFixed(3);
+}
+
+/**
+ * 角度を小数点4桁表示
+ */
+function fmtAngle4(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return Number(v).toFixed(4) + '°';
+}
+
+/**
+ * 角度を小数点4桁（°なし）
+ */
+function fmtNum4(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return Number(v).toFixed(4);
+}
+
+/**
+ * 整数表示
+ */
+function fmtInt(v) {
+  if (v === null || v === undefined || isNaN(v)) return '—';
+  return Math.round(v).toString();
+}
+
+/**
+ * 十進数角度 → 度・分・秒
+ */
+function toDMS(deg) {
+  deg = ((deg % 360) + 360) % 360;
+  // JWW準拠: 総秒数をfloorで計算し、度・分・秒に分解
+  const totalSec = Math.floor(deg * 3600 + 0.5e-9); // 浮動小数誤差対策で微小値を加算してfloor
+  const d = Math.floor(totalSec / 3600);
+  const m = Math.floor((totalSec % 3600) / 60);
+  const s = totalSec % 60;
+  return { d, m, s };
+}
+
+// =============================================
+// Coord input helpers
+// =============================================
+
+/**
+ * フォーカス時: 値が「0」ならテキスト全選択 → そのまま上書きOK
+ */
+function coordFocus(el) {
+  // iPhoneで inputmode="decimal" はマイナス入力不可のため、
+  // フォーカス時に inputmode="text" をセット（iPhone/iPad両方でマイナス入力可能）
+  el.setAttribute('inputmode', 'text');
+  if (el.value === '0' || el.value === '') {
+    setTimeout(() => el.select(), 0);
+  }
+}
+
+/**
+ * 入力中: リアルタイムで再計算（parseFloat で数値として読む）
+ * 小数点入力中は計算スキップ（末尾が「.」または「-」のとき）
+ */
+function coordInput(el, callback) {
+  const v = el.value;
+  // 入力途中（末尾が . や - のとき）は計算しない
+  if (/[.\-]$/.test(v) || v === '' || v === '-') return;
+  if (typeof callback === 'string') {
+    window[callback]();
+  } else if (typeof callback === 'function') {
+    callback();
+  }
+}
+
+/**
+ * フォーカスアウト時:
+ *   1. 小数点なし整数（絶対値4桁以上）→ 末尾3桁の前に「.」を自動挿入
+ *      例: 6512 → 6.512 / -6512 → -6.512 / 19958 → 19.958
+ *   2. 空欄 → 0 に戻す
+ *   3. 再計算を実行
+ */
+function coordBlur(el, callback) {
+  let v = el.value.trim();
+
+  if (v === '' || v === '-') {
+    el.value = '0';
+  } else if (/^-?\d{4,}$/.test(v)) {
+    // 整数4桁以上かつ小数点なし → 末尾3桁の前に . を挿入
+    const neg = v.startsWith('-');
+    const digits = neg ? v.slice(1) : v;
+    const intPart = digits.slice(0, digits.length - 3);
+    const decPart = digits.slice(-3);
+    el.value = (neg ? '-' : '') + intPart + '.' + decPart;
+  } else {
+    // そのまま数値として検証・正規化
+    const n = parseFloat(v);
+    if (!isNaN(n)) {
+      // 小数桁を最大4桁まで保持（末尾ゼロも含む入力を尊重）
+      const decMatch = v.match(/\.(\d+)/);
+      const decLen = decMatch ? Math.min(decMatch[1].length, 4) : 0;
+      el.value = decLen > 0 ? n.toFixed(decLen) : String(n);
+    } else {
+      el.value = '0';
+    }
+  }
+
+  if (typeof callback === 'string') {
+    window[callback]();
+  } else if (typeof callback === 'function') {
+    callback();
+  }
+}
+
+// =============================================
+// 方位角計算 (JWW CAD座標系: X=東, Y=北)
+//   方位角 = 北(Y+)を0°として右回り（時計回り）0〜360°
+//   atan2(dX, dY) = 北基準・右回り
+// =============================================
+function calcBearing(mx, my, px, py) {
+  const dX = px - mx; // 東西差（X+東、X-西）
+  const dY = py - my; // 南北差（Y+南、Y-北）← JWW座標系はY+が南
+  const dist = Math.sqrt(dX * dX + dY * dY);
+  if (dist === 0) return { dist: 0, bearing: 0 };
+
+  // JWW座標系: X=東西(+東), Y=南北(+南)
+  // 北基準右回り方位角 = atan2(東差=dX, 南差=dY)
+  // ※Y+南の座標系では「南方向=前方」なので atan2(dX, dY) が正しい
+  let bearing = Math.atan2(dX, dY) * 180 / Math.PI;
+  bearing = ((bearing % 360) + 360) % 360;
+  return { dist, bearing };
+}
+
+// =============================================
+// TAB1: 座標→距離・角度
+// =============================================
+let t1Rows = [];
+let t1RowId = 0;
+
+function t1GetMech() {
+  return {
+    x: parseFloat(document.getElementById('t1_mech_x').value) || 0,
+    y: parseFloat(document.getElementById('t1_mech_y').value) || 0
+  };
+}
+function t1GetVis() {
+  return {
+    x: parseFloat(document.getElementById('t1_vis_x').value) || 0,
+    y: parseFloat(document.getElementById('t1_vis_y').value) || 0
+  };
+}
+
+/** 機械点名が変わったとき: 同名の行のXYを機械点に反映 */
+
+// =============================================
+// ポイント名ドロップダウン
+// =============================================
+
+/** ドロップダウンを開く */
+function openPointDropdown(inputId, tab) {
+  const dropdown = document.getElementById(inputId + '_dropdown');
+  if (!dropdown) return;
+  renderPointDropdown(inputId, tab, '');
+  dropdown.classList.add('open');
+
+  // 入力欄をreadonlyから一時的に解除（タップ後に選択操作のみ）
+  // 他のドロップダウンを全て閉じる
+  closeAllPointDropdowns(inputId + '_dropdown');
+}
+
+/** ドロップダウン内容を描画 */
+function renderPointDropdown(inputId, tab, filter) {
+  const dropdown = document.getElementById(inputId + '_dropdown');
+  const inputEl  = document.getElementById(inputId.replace('_mech','_mech_name').replace('_vis','_vis_name'));
+  const currentVal = inputEl ? inputEl.value.trim() : '';
+
+  // t1Rows または t2Rows から測点名を収集
+  const rows = tab === 't1' ? t1Rows : t2Rows;
+  const items = rows.map(r => {
+    const name = getNameVal(r.id, tab);
+    const x = document.getElementById(tab + '_x_' + r.id)?.value || '';
+    const y = document.getElementById(tab + '_y_' + r.id)?.value || '';
+    return { name, x, y };
+  }).filter(item => item.name && (!filter || item.name.toLowerCase().includes(filter.toLowerCase())));
+
+  if (items.length === 0) {
+    dropdown.innerHTML = '<div class="point-dropdown-empty">計算点一覧に測点がありません</div>';
+    return;
+  }
+
+  dropdown.innerHTML = items.map(item => {
+    const sel = item.name === currentVal ? ' selected' : '';
+    const xStr = item.x !== '' ? 'X:' + parseFloat(item.x).toFixed(3) : '';
+    const yStr = item.y !== '' ? ' Y:' + parseFloat(item.y).toFixed(3) : '';
+    return `<div class="point-dropdown-item${sel}" onclick="selectPointDropdown('${inputId}', '${tab}', '${item.name.replace(/'/g,"\\'")}')">
+      <span class="pd-name">${item.name}</span>
+      <span class="pd-coords">${xStr}${yStr}</span>
+      <span class="pd-check">✅</span>
+    </div>`;
+  }).join('');
+}
+
+/** フィルタリング（入力中） */
+function filterPointDropdown(inputId) {
+  // readonly なので現状はフィルタ不要
+  // 将来的にテキスト入力対応する場合に使用
+}
+
+/** ドロップダウンから選択 */
+function selectPointDropdown(inputId, tab, name) {
+  const inputEl = document.getElementById(inputId + '_name');
+  if (inputEl) {
+    inputEl.value = name;
+    // 対応する変更ハンドラを呼ぶ
+    if (inputId === 't1_mech') t1OnMechNameChange();
+    else if (inputId === 't1_vis') t1OnVisNameChange();
+    else if (inputId === 't2_mech') t2OnMechNameChange();
+    else if (inputId === 't2_vis') t2OnVisNameChange();
+  }
+  closeAllPointDropdowns();
+  autoSave();
+}
+
+/** 全ドロップダウンを閉じる（除外ID指定可） */
+function closeAllPointDropdowns(exceptId) {
+  ['t1_mech_dropdown','t1_vis_dropdown','t2_mech_dropdown','t2_vis_dropdown'].forEach(id => {
+    if (id !== exceptId) {
+      document.getElementById(id)?.classList.remove('open');
+    }
+  });
+}
+
+// ドキュメント外タップで閉じる
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('.point-input-wrap')) {
+    closeAllPointDropdowns();
+  }
+});
+
+function t1OnMechNameChange() {
+  const name = document.getElementById('t1_mech_name').value.trim();
+  const found = t1Rows.find(r => getNameVal(r.id, 't1') === name);
+  if (found) {
+    const x = document.getElementById('t1_x_' + found.id)?.value;
+    const y = document.getElementById('t1_y_' + found.id)?.value;
+    if (x !== undefined) document.getElementById('t1_mech_x').value = x;
+    if (y !== undefined) document.getElementById('t1_mech_y').value = y;
+  }
+  t1RecalcAll();
+  autoSave();
+}
+
+/** 計算点一覧のXY変更時 → 機械点・視準点にも反映してから再計算 */
+function t1OnRowXYChange(id) {
+  const rowName = getNameVal(id, 't1');
+  const rowX = document.getElementById('t1_x_' + id)?.value;
+  const rowY = document.getElementById('t1_y_' + id)?.value;
+  // 機械点と一致すれば反映
+  if (rowName && rowName === document.getElementById('t1_mech_name').value.trim()) {
+    if (rowX !== undefined) document.getElementById('t1_mech_x').value = rowX;
+    if (rowY !== undefined) document.getElementById('t1_mech_y').value = rowY;
+  }
+  // 視準点と一致すれば反映
+  if (rowName && rowName === document.getElementById('t1_vis_name').value.trim()) {
+    if (rowX !== undefined) document.getElementById('t1_vis_x').value = rowX;
+    if (rowY !== undefined) document.getElementById('t1_vis_y').value = rowY;
+  }
+  t1RecalcAll();
+  autoSave();
+}
+
+/** 視準点名が変わったとき: 同名の行のXYを視準点に反映 */
+function t1OnVisNameChange() {
+  const name = document.getElementById('t1_vis_name').value.trim();
+  const found = t1Rows.find(r => getNameVal(r.id, 't1') === name);
+  if (found) {
+    const x = document.getElementById('t1_x_' + found.id)?.value;
+    const y = document.getElementById('t1_y_' + found.id)?.value;
+    if (x !== undefined) document.getElementById('t1_vis_x').value = x;
+    if (y !== undefined) document.getElementById('t1_vis_y').value = y;
+  }
+  t1RecalcAll();
+}
+
+/** contenteditable span から名前を取得 */
+function getNameVal(id, tab) {
+  const el = document.getElementById(tab + '_name_' + id);
+  return el ? el.textContent.trim() : '';
+}
+
+function t1RecalcAll() {
+  const m = t1GetMech();
+  const v = t1GetVis();
+
+  // 視準線の方位角
+  const rv = calcBearing(m.x, m.y, v.x, v.y);
+  const visBearing = rv.bearing;
+
+  // 基準点カードの更新
+  document.getElementById('r_dist').textContent = fmtDist(rv.dist);
+  // 視準点自体: 左=0°, 右=0° (基準)
+  document.getElementById('r_right').textContent = '0.0000°';
+  document.getElementById('r_left').textContent = '0.0000°';
+
+  t1Rows.forEach(row => {
+    const px = parseFloat(document.getElementById('t1_x_' + row.id)?.value);
+    const py = parseFloat(document.getElementById('t1_y_' + row.id)?.value);
+    t1RecalcRow(row.id, m.x, m.y, visBearing, px, py);
+  });
+
+  document.getElementById('t1_rowcount').textContent = t1Rows.length;
+  t1UpdateSummary();
+}
+
+function t1RecalcRow(id, mx, my, visBearing, px, py) {
+  if (isNaN(px) || isNaN(py)) {
+    t1SetCells(id, null, null, null, null, null, null);
+    return;
+  }
+  // 機械点と同座標の場合は距離0 → 角度表示なし
+  if (px === mx && py === my) {
+    t1SetCells(id, 0, null, null, null, null, null);
+    return;
+  }
+
+  const r = calcBearing(mx, my, px, py);
+  const dist = r.dist;
+  const bearing = r.bearing; // 絶対方位角
+
+  // 左回り角 = (点の方位角 - 視準方位角 + 360) % 360
+  // 左回りは "視準点から見て反時計回り" → bearing が視準より大きければ左、小さければ右
+  // 測量では: 水平角 右回り = (点方位 - 視準方位 + 360) % 360
+  let rightAngle = (bearing - visBearing + 360) % 360;
+  // 左回り = 360 - 右回り (ただし右回り=0のとき左も0)
+  let leftAngle = rightAngle === 0 ? 0 : 360 - rightAngle;
+
+  const dirEl = document.getElementById('t1_dir_' + id);
+  let dir;
+  if (dirEl && dirEl.dataset.manual === 'true') {
+    // ユーザーが手動でL/Rを設定した場合はそれを優先
+    dir = dirEl.dataset.dir;
+  } else {
+    // 自動判定: R=右旋回（時計回り）、L=左旋回（反時計回り）
+    // rightAngle が180°以下 → 時計回りの方が近い → R
+    // rightAngle が180°超  → 反時計回りの方が近い → L
+    dir = rightAngle <= 180 ? 'R' : 'L';
+    if (dirEl) {
+      dirEl.dataset.dir = dir;
+      dirEl.textContent = dir;
+      dirEl.className = 'dir-badge dir-' + dir;
+    }
+  }
+  // 表示角度: R=rightAngle, L=leftAngle(=360-rightAngle)
+  // ただし表示上は常に「小さい方の角度」を見やすく出す
+  const dmsAngle = dir === 'R' ? rightAngle : leftAngle;
+  const dms = toDMS(dmsAngle);
+
+  t1SetCells(id, dist, rightAngle, leftAngle, dms.d, dms.m, dms.s);
+}
+
+function t1SetCells(id, dist, right, left, deg, min, sec) {
+  const s = (sid, v, fmt) => {
+    const el = document.getElementById(sid);
+    if (!el) return;
+    if (v === null || v === undefined) { el.textContent = '—'; return; }
+    el.textContent = fmt(v);
+  };
+  s('t1_dist_' + id, dist, fmtDist);
+  // 測量角(右)(左)は非表示化（列削除）したが計算は継続
+  s('t1_deg_' + id, deg, fmtInt);
+  s('t1_min_' + id, min, fmtInt);
+  s('t1_sec_' + id, sec, fmtInt);
+}
+
+function t1AddRow(name = '', x = '', y = '', dir = 'R') {
+  const id = ++t1RowId;
+  t1Rows.push({ id });
+
+  const tbody = document.getElementById('t1_tbody');
+  const tr = document.createElement('tr');
+  tr.id = 't1_tr_' + id;
+
+  const xVal = x !== '' ? x : '';
+  const yVal = y !== '' ? y : '';
+
+  tr.innerHTML = `
+    <td class="row-num" style="position:-webkit-sticky;position:sticky;left:0;z-index:10;">${t1Rows.length}</td>
+    <td class="name-cell" style="position:-webkit-sticky;position:sticky;left:32px;z-index:10;">
+      <span class="name-editable"
+            id="t1_name_${id}"
+            contenteditable="true"
+            spellcheck="false"
+            oninput="t1OnRowNameChange(${id})"
+      >${name}</span>
+    </td>
+    <td><input type="text" class="coord-input w-coord" id="t1_x_${id}" value="${xVal}" onfocus="coordFocus(this)" onblur="coordBlur(this, () => t1OnCoordChange(${id}))" oninput="coordInput(this, () => t1OnCoordChange(${id}))"></td>
+    <td><input type="text" class="coord-input w-coord" id="t1_y_${id}" value="${yVal}" onfocus="coordFocus(this)" onblur="coordBlur(this, () => t1OnCoordChange(${id}))" oninput="coordInput(this, () => t1OnCoordChange(${id}))"></td>
+    <td class="calc-hi" id="t1_dist_${id}">—</td>
+    <td class="angle-dms" id="t1_deg_${id}">—</td>
+    <td class="angle-dms" id="t1_min_${id}">—</td>
+    <td class="angle-dms" id="t1_sec_${id}">—</td>
+    <td><span class="dir-badge dir-${dir}" id="t1_dir_${id}" data-dir="${dir}" data-manual="false" onclick="t1ToggleDir(${id})">${dir}</span></td>
+    <td><button class="btn btn-danger" onclick="t1DeleteRow(${id})">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  // 固定列の背景色をインラインで確実に設定
+  const _bg1 = (t1Rows.length % 2 === 1) ? 'var(--surface)' : 'var(--surface2)';
+  const _n1 = tr.querySelector('td.row-num');
+  const _c1 = tr.querySelector('td.name-cell');
+  if (_n1) _n1.style.background = _bg1;
+  if (_c1) _c1.style.background = _bg1;
+  t1RecalcAll();
+}
+
+/** 行の名前が変わったとき: 機械点・視準点と連動 */
+function t1OnRowNameChange(id) {
+  const name = getNameVal(id, 't1');
+  const mechName = document.getElementById('t1_mech_name').value.trim();
+  const visName = document.getElementById('t1_vis_name').value.trim();
+  const x = document.getElementById('t1_x_' + id)?.value;
+  const y = document.getElementById('t1_y_' + id)?.value;
+  if (name === mechName) {
+    if (x !== undefined) document.getElementById('t1_mech_x').value = x;
+    if (y !== undefined) document.getElementById('t1_mech_y').value = y;
+  }
+  if (name === visName) {
+    if (x !== undefined) document.getElementById('t1_vis_x').value = x;
+    if (y !== undefined) document.getElementById('t1_vis_y').value = y;
+  }
+  t1RecalcAll();
+}
+
+/** 行の座標が変わったとき: 機械点・視準点と連動 */
+function t1OnCoordChange(id) {
+  const name = getNameVal(id, 't1');
+  const x = document.getElementById('t1_x_' + id)?.value;
+  const y = document.getElementById('t1_y_' + id)?.value;
+  const mechName = document.getElementById('t1_mech_name').value.trim();
+  const visName = document.getElementById('t1_vis_name').value.trim();
+  if (name === mechName) {
+    document.getElementById('t1_mech_x').value = x;
+    document.getElementById('t1_mech_y').value = y;
+  }
+  if (name === visName) {
+    document.getElementById('t1_vis_x').value = x;
+    document.getElementById('t1_vis_y').value = y;
+  }
+  t1RecalcAll();
+}
+
+function t1AddRows10() { for (let i = 0; i < 10; i++) t1AddRow(); }
+
+function t1ToggleDir(id) {
+  const el = document.getElementById('t1_dir_' + id);
+  const nxt = el.dataset.dir === 'R' ? 'L' : 'R';
+  el.dataset.dir = nxt;
+  el.dataset.manual = 'true'; // ユーザー手動設定
+  el.textContent = nxt;
+  el.className = 'dir-badge dir-' + nxt;
+  t1RecalcAll();
+}
+
+function t1DeleteRow(id) {
+  document.getElementById('t1_tr_' + id)?.remove();
+  t1Rows = t1Rows.filter(r => r.id !== id);
+  t1Rows.forEach((r, i) => {
+    const tr = document.getElementById('t1_tr_' + r.id);
+    if (!tr) return;
+    const tdNum  = tr.querySelector('td.row-num');
+    const tdName = tr.querySelector('td.name-cell');
+    const bg = (i % 2 === 0) ? 'var(--surface)' : 'var(--surface2)';
+    if (tdNum)  { tdNum.textContent = i + 1; tdNum.style.background = bg; }
+    if (tdName) { tdName.style.background = bg; }
+  });
+  document.getElementById('t1_rowcount').textContent = t1Rows.length;
+  t1UpdateSummary();
+}
+
+function t1ClearAll() {
+  if (!confirm('全データを削除しますか？')) return;
+  t1Rows = [];
+  document.getElementById('t1_tbody').innerHTML = '';
+  document.getElementById('t1_rowcount').textContent = 0;
+  t1UpdateSummary();
+}
+
+function t1UpdateSummary() {
+  const bar = document.getElementById('t1_summary');
+  let valid = 0, minD = Infinity, maxD = -Infinity;
+  t1Rows.forEach(r => {
+    const v = parseFloat(document.getElementById('t1_dist_' + r.id)?.textContent);
+    if (!isNaN(v)) { valid++; if (v < minD) minD = v; if (v > maxD) maxD = v; }
+  });
+  bar.innerHTML = valid > 0
+    ? `<div class="summary-item">有効点数: <span>${valid}</span></div>
+       <div class="summary-item">最小距離: <span>${fmtDist(minD)}m</span></div>
+       <div class="summary-item">最大距離: <span>${fmtDist(maxD)}m</span></div>`
+    : '';
+}
+
+function t1ImportData() {
+  const raw = document.getElementById('t1_import_text').value.trim();
+  if (!raw) return;
+  let added = 0;
+  raw.split('\n').forEach(line => {
+    const parts = line.split(/[,\t]+/).map(s => s.trim());
+    if (parts.length >= 3) {
+      const name = parts[0];
+      const x = parseFloat(parts[1]);
+      const y = parseFloat(parts[2]);
+      if (!isNaN(x) && !isNaN(y)) { t1AddRow(name, x, y); added++; }
+    }
+  });
+  if (added > 0) alert(added + '件インポートしました。');
+}
+
+function t1ExportCSV() {
+  const m = t1GetMech();
+  let csv = '測点名,X座標,Y座標,距離,測量角(右回り),測量角(左回り),度,分,秒,向き\n';
+  t1Rows.forEach(row => {
+    const name = getNameVal(row.id, 't1');
+    const x = document.getElementById('t1_x_' + row.id)?.value || '';
+    const y = document.getElementById('t1_y_' + row.id)?.value || '';
+    const get = id => document.getElementById(id)?.textContent || '';
+    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    csv += `${name},${x},${y},${get('t1_dist_' + row.id)},${get('t1_right_' + row.id)},${get('t1_left_' + row.id)},${get('t1_deg_' + row.id)},${get('t1_min_' + row.id)},${get('t1_sec_' + row.id)},${dir}\n`;
+  });
+  downloadFile('座標計算結果.csv', csv, 'text/csv;charset=utf-8;');
+}
+
+function t1ExportExcel() {
+  const headers = ['測点名','X座標','Y座標','距離','測量角(右回り)','測量角(左回り)','度','分','秒','向き'];
+  const rows = [];
+  t1Rows.forEach(row => {
+    const name = getNameVal(row.id, 't1');
+    const x = document.getElementById('t1_x_' + row.id)?.value || '';
+    const y = document.getElementById('t1_y_' + row.id)?.value || '';
+    const get = id => document.getElementById(id)?.textContent || '';
+    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    rows.push([name, x, y,
+      get('t1_dist_' + row.id), get('t1_right_' + row.id), get('t1_left_' + row.id),
+      get('t1_deg_' + row.id), get('t1_min_' + row.id), get('t1_sec_' + row.id), dir]);
+  });
+  exportExcelWithStripe(headers, rows, '座標計算結果.xlsx', 'Sheet1');
+}
+
+function t1ExportTSV() {
+  let tsv = '';
+  t1Rows.forEach(row => {
+    const name = getNameVal(row.id, 't1');
+    const x = document.getElementById('t1_x_' + row.id)?.value || '';
+    const y = document.getElementById('t1_y_' + row.id)?.value || '';
+    const get = id => document.getElementById(id)?.textContent || '';
+    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    tsv += [name, x, y, get('t1_dist_' + row.id), get('t1_right_' + row.id), get('t1_left_' + row.id),
+            get('t1_deg_' + row.id), get('t1_min_' + row.id), get('t1_sec_' + row.id), dir].join('\t') + '\n';
+  });
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(tsv).then(() => alert('クリップボードにコピーしました。'));
+  }
+}
+
+// =============================================
+// TAB2: 距離・角度→座標
+// =============================================
+let t2Rows = [];
+let t2RowId = 0;
+
+function t2GetMech() {
+  return {
+    x: parseFloat(document.getElementById('t2_mech_x').value) || 0,
+    y: parseFloat(document.getElementById('t2_mech_y').value) || 0
+  };
+}
+function t2GetVis() {
+  return {
+    x: parseFloat(document.getElementById('t2_vis_x').value) || 0,
+    y: parseFloat(document.getElementById('t2_vis_y').value) || 0
+  };
+}
+
+function t2OnMechNameChange() {
+  const name = document.getElementById('t2_mech_name').value.trim();
+  // Tab2 には自前の行リストがないので、Tab1の行を参照
+  const found = t1Rows.find(r => getNameVal(r.id, 't1') === name);
+  if (found) {
+    const x = document.getElementById('t1_x_' + found.id)?.value;
+    const y = document.getElementById('t1_y_' + found.id)?.value;
+    if (x !== undefined) document.getElementById('t2_mech_x').value = x;
+    if (y !== undefined) document.getElementById('t2_mech_y').value = y;
+  }
+  t2RecalcAll();
+}
+
+function t2OnVisNameChange() {
+  const name = document.getElementById('t2_vis_name').value.trim();
+  const found = t1Rows.find(r => getNameVal(r.id, 't1') === name);
+  if (found) {
+    const x = document.getElementById('t1_x_' + found.id)?.value;
+    const y = document.getElementById('t1_y_' + found.id)?.value;
+    if (x !== undefined) document.getElementById('t2_vis_x').value = x;
+    if (y !== undefined) document.getElementById('t2_vis_y').value = y;
+  }
+  t2RecalcAll();
+  autoSave();
+}
+
+function t2OnRowXYChange(id) {
+  // TAB2の計算点XY変更時: 機械点・視準点と名前が一致すれば座標を反映
+  // (TAB2は距離・角度入力なのでXYは読み取り専用だが念のため)
+  t2RecalcAll();
+  autoSave();
+}
+
+function t2RecalcAll() {
+  const m = t2GetMech(), v = t2GetVis();
+  const rv = calcBearing(m.x, m.y, v.x, v.y);
+  const visBearing = rv.bearing;
+
+  document.getElementById('t2_ref_dist').textContent = fmtDist(rv.dist);
+  document.getElementById('t2_ref_right').textContent = '0.0000°';
+  document.getElementById('t2_ref_left').textContent = '0.0000°';
+
+  t2Rows.forEach(row => t2RecalcRow(row.id, m.x, m.y, visBearing));
+  document.getElementById('t2_rowcount').textContent = t2Rows.length;
+  t2UpdateSummary();
+}
+
+function t2RecalcRow(id, mx, my, visBearing) {
+  const dist = parseFloat(document.getElementById('t2_dist_' + id)?.value);
+  const deg = parseFloat(document.getElementById('t2_deg_' + id)?.value) || 0;
+  const min = parseFloat(document.getElementById('t2_min_' + id)?.value) || 0;
+  const sec = parseFloat(document.getElementById('t2_sec_' + id)?.value) || 0;
+  const dir = document.getElementById('t2_dir_' + id)?.dataset.dir || 'R';
+
+  if (isNaN(dist)) {
+    ['t2_cx_', 't2_cy_'].forEach(p => {
+      const el = document.getElementById(p + id);
+      if (el) el.textContent = '—';
+    });
+    return;
+  }
+
+  const inputAngle = deg + min / 60 + sec / 3600;
+  // 右回り入力 → 絶対方位角 = visBearing + rightAngle
+  // 左回り入力 → 絶対方位角 = visBearing - leftAngle
+  let bearing;
+  if (dir === 'R') {
+    bearing = (visBearing + inputAngle + 360) % 360;
+  } else {
+    bearing = (visBearing - inputAngle + 360) % 360;
+  }
+
+  // 絶対方位角から右回り・左回り測量角
+  let rightAngle = (bearing - visBearing + 360) % 360;
+  let leftAngle = rightAngle === 0 ? 0 : 360 - rightAngle;
+
+  // 座標計算: JWW座標系 X=東(+), Y=南(+) ← Y軸が通常と逆
+  //   北基準右回り bearing → X(東) += dist*sin(bearing), Y(南) += -dist*cos(bearing)
+  const rad = bearing * Math.PI / 180;
+  const cx = mx + dist * Math.sin(rad);
+  const cy = my - dist * Math.cos(rad);
+
+  const _r2 = document.getElementById('t2_right_' + id); if (_r2) _r2.textContent = fmtNum4(rightAngle);
+  const _l2 = document.getElementById('t2_left_' + id); if (_l2) _l2.textContent = fmtNum4(leftAngle);
+  document.getElementById('t2_cx_' + id).textContent = fmtDist(cx);
+  document.getElementById('t2_cy_' + id).textContent = fmtDist(cy);
+}
+
+function t2AddRow(name = '', dist = '', deg = 0, min = 0, sec = 0, dir = 'R') {
+  const id = ++t2RowId;
+  t2Rows.push({ id });
+  const tbody = document.getElementById('t2_tbody');
+  const tr = document.createElement('tr');
+  tr.id = 't2_tr_' + id;
+  tr.innerHTML = `
+    <td class="row-num" style="position:-webkit-sticky;position:sticky;left:0;z-index:10;">${t2Rows.length}</td>
+    <td class="name-cell" style="position:-webkit-sticky;position:sticky;left:32px;z-index:10;">
+      <span class="name-editable"
+            id="t2_name_${id}"
+            contenteditable="true"
+            spellcheck="false"
+      >${name}</span>
+    </td>
+    <td><input type="text" class="coord-input w-dist" id="t2_dist_${id}" value="${dist}" onfocus="coordFocus(this)" onblur="coordBlur(this, 't2RecalcAll')" oninput="coordInput(this, 't2RecalcAll')"></td>
+    <td><input type="number" class="w-dms" id="t2_deg_${id}" value="${deg}" step="1" min="0" max="359" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
+    <td><input type="number" class="w-dms" id="t2_min_${id}" value="${min}" step="1" min="0" max="59" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
+    <td><input type="number" class="w-dms" id="t2_sec_${id}" value="${sec}" step="1" min="0" max="59" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
+    <td><span class="dir-badge dir-${dir}" id="t2_dir_${id}" data-dir="${dir}" onclick="t2ToggleDir(${id})">${dir}</span></td>
+    <td class="calc-hi" id="t2_cx_${id}">—</td>
+    <td class="calc-hi" id="t2_cy_${id}">—</td>
+    <td><button class="btn btn-danger" onclick="t2DeleteRow(${id})">✕</button></td>
+  `;
+  tbody.appendChild(tr);
+  const _bg2 = (t2Rows.length % 2 === 1) ? 'var(--surface)' : 'var(--surface2)';
+  const _n2 = tr.querySelector('td.row-num');
+  const _c2 = tr.querySelector('td.name-cell');
+  if (_n2) _n2.style.background = _bg2;
+  if (_c2) _c2.style.background = _bg2;
+  t2RecalcAll();
+}
+
+function t2AddRows10() { for (let i = 0; i < 10; i++) t2AddRow(); }
+
+function t2ToggleDir(id) {
+  const el = document.getElementById('t2_dir_' + id);
+  const nxt = el.dataset.dir === 'R' ? 'L' : 'R';
+  el.dataset.dir = nxt;
+  el.textContent = nxt;
+  el.className = 'dir-badge dir-' + nxt;
+  t2RecalcAll();
+}
+
+function t2DeleteRow(id) {
+  document.getElementById('t2_tr_' + id)?.remove();
+  t2Rows = t2Rows.filter(r => r.id !== id);
+  t2Rows.forEach((r, i) => {
+    const tr = document.getElementById('t2_tr_' + r.id);
+    if (!tr) return;
+    const tdNum  = tr.querySelector('td.row-num');
+    const tdName = tr.querySelector('td.name-cell');
+    const bg = (i % 2 === 0) ? 'var(--surface)' : 'var(--surface2)';
+    if (tdNum)  { tdNum.textContent = i + 1; tdNum.style.background = bg; }
+    if (tdName) { tdName.style.background = bg; }
+  });
+  document.getElementById('t2_rowcount').textContent = t2Rows.length;
+}
+
+function t2ClearAll() {
+  if (!confirm('全データを削除しますか？')) return;
+  t2Rows = [];
+  document.getElementById('t2_tbody').innerHTML = '';
+  document.getElementById('t2_rowcount').textContent = 0;
+}
+
+function t2UpdateSummary() {
+  const bar = document.getElementById('t2_summary');
+  let valid = 0;
+  t2Rows.forEach(r => {
+    if (document.getElementById('t2_cx_' + r.id)?.textContent !== '—') valid++;
+  });
+  bar.innerHTML = valid > 0 ? `<div class="summary-item">計算済み点数: <span>${valid}</span></div>` : '';
+}
+
+function t2ExportCSV() {
+  let csv = '測点名,距離,角度(度),角度(分),角度(秒),向き,測量角(右),測量角(左),X座標,Y座標\n';
+  t2Rows.forEach(row => {
+    const name = getNameVal(row.id, 't2');
+    const get = id => { const el = document.getElementById(id + row.id); return el ? (el.value !== undefined ? el.value : el.textContent) : ''; };
+    const dir = document.getElementById('t2_dir_' + row.id)?.dataset.dir || '';
+    csv += [name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
+            get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')].join(',') + '\n';
+  });
+  downloadFile('距離角度計算結果.csv', csv, 'text/csv;charset=utf-8;');
+}
+
+function t2ExportExcel() {
+  const headers = ['測点名','距離','角度(度)','角度(分)','角度(秒)','向き','測量角(右)','測量角(左)','X座標','Y座標'];
+  const rows = [];
+  t2Rows.forEach(row => {
+    const name = getNameVal(row.id, 't2');
+    const get = id => { const el = document.getElementById(id + row.id); return el ? (el.value !== undefined ? el.value : el.textContent) : ''; };
+    const dir = document.getElementById('t2_dir_' + row.id)?.dataset.dir || '';
+    rows.push([name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
+               get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')]);
+  });
+  exportExcelWithStripe(headers, rows, '距離角度計算結果.xlsx', 'Sheet1');
+}
+
+// =============================================
+// Utils
+// =============================================
+function exportExcelWithStripe(headers, rows, filename, sheetName) {
+  const wb = XLSX.utils.book_new();
+
+  // スタイル定義
+  const styleHeader = {
+    fill: { patternType: 'solid', fgColor: { rgb: '0A8C6E' } },
+    font: { bold: true, color: { rgb: 'FFFFFF' }, sz: 10, name: 'ＭＳ ゴシック' },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      top:    { style: 'thin', color: { rgb: '057A5E' } },
+      bottom: { style: 'thin', color: { rgb: '057A5E' } },
+      left:   { style: 'thin', color: { rgb: '057A5E' } },
+      right:  { style: 'thin', color: { rgb: '057A5E' } }
+    }
+  };
+  const styleOdd = {
+    fill: { patternType: 'solid', fgColor: { rgb: 'FFFFFF' } },
+    font: { sz: 10, name: 'ＭＳ ゴシック' },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      top:    { style: 'hair', color: { rgb: 'C0DDD6' } },
+      bottom: { style: 'hair', color: { rgb: 'C0DDD6' } },
+      left:   { style: 'hair', color: { rgb: 'C0DDD6' } },
+      right:  { style: 'hair', color: { rgb: 'C0DDD6' } }
+    }
+  };
+  const styleEven = {
+    fill: { patternType: 'solid', fgColor: { rgb: 'E6F4F0' } },
+    font: { sz: 10, name: 'ＭＳ ゴシック' },
+    alignment: { horizontal: 'center', vertical: 'center' },
+    border: {
+      top:    { style: 'hair', color: { rgb: 'C0DDD6' } },
+      bottom: { style: 'hair', color: { rgb: 'C0DDD6' } },
+      left:   { style: 'hair', color: { rgb: 'C0DDD6' } },
+      right:  { style: 'hair', color: { rgb: 'C0DDD6' } }
+    }
+  };
+
+  // セルを手動で構築
+  const ws = {};
+  const numCols = headers.length;
+  const numRows = rows.length + 1; // +1 for header
+
+  // ヘッダー行
+  headers.forEach((h, C) => {
+    const addr = XLSX.utils.encode_cell({ r: 0, c: C });
+    ws[addr] = { t: 's', v: h, s: styleHeader };
+  });
+
+  // データ行
+  rows.forEach((row, ri) => {
+    const R = ri + 1;
+    const style = (ri % 2 === 0) ? styleOdd : styleEven; // 1行目=白、2行目=グリーン
+    row.forEach((val, C) => {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      const num = val !== '' && !isNaN(val) ? Number(val) : null;
+      ws[addr] = num !== null
+        ? { t: 'n', v: num, s: style }
+        : { t: 's', v: val ?? '', s: style };
+    });
+  });
+
+  // シート範囲
+  ws['!ref'] = XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: numRows - 1, c: numCols - 1 } });
+
+  // 列幅
+  ws['!cols'] = headers.map((h, ci) => {
+    const maxLen = [h, ...rows.map(r => String(r[ci] ?? ''))].reduce((m, v) => Math.max(m, v.length), 0);
+    return { wch: Math.min(maxLen + 3, 22) };
+  });
+
+  // 行高さ
+  ws['!rows'] = Array.from({ length: numRows }, (_, i) => ({ hpt: i === 0 ? 20 : 18 }));
+
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, filename);
+}
+
+function downloadFile(name, content, mime) {
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + content], { type: mime });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = name;
+  a.click();
+}
+
+function switchTab(id) {
+  document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  const idx = ['tab1', 'tab2', 'tab3'].indexOf(id);
+  document.querySelectorAll('.tab')[idx]?.classList.add('active');
+}
+
+// =============================================
+// Init
+// =============================================
+
+// ============================================================
+// ストレージ抽象化レイヤー（IndexedDB優先 / LocalStorageフォールバック）
+// iOS PWA では LocalStorage が起動ごとに消えるため IndexedDB を使用
+// ============================================================
+const DB_NAME    = 'ZahyoCalcDB';
+const DB_VERSION = 1;
+const DB_STORE   = 'kv';
+let _db = null;
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    if (_db) { resolve(_db); return; }
+    const req = indexedDB.open(DB_NAME, DB_VERSION);
+    req.onupgradeneeded = e => {
+      e.target.result.createObjectStore(DB_STORE);
+    };
+    req.onsuccess = e => { _db = e.target.result; resolve(_db); };
+    req.onerror   = e => reject(e.target.error);
+  });
+}
+
+async function dbGet(key) {
+  try {
+    const db = await openDB();
+    const result = await new Promise((resolve, reject) => {
+      const tx  = db.transaction(DB_STORE, 'readonly');
+      const req = tx.objectStore(DB_STORE).get(key);
+      req.onsuccess = e => resolve(e.target.result ?? null);
+      req.onerror   = e => reject(e.target.error);
+    });
+    // IndexedDBにデータがなければLocalStorageバックアップから復元
+    if (result === null) {
+      const bk = localStorage.getItem('bk_' + key);
+      if (bk) {
+        // バックアップをIndexedDBに書き戻す
+        dbSet(key, bk).catch(() => {});
+        return bk;
+      }
+    }
+    return result;
+  } catch(e) {
+    // フォールバック: LocalStorageバックアップ優先
+    try {
+      return localStorage.getItem('bk_' + key) || localStorage.getItem(key);
+    } catch { return null; }
+  }
+}
+
+async function dbSet(key, value) {
+  // LocalStorageに即時バックアップ（IndexedDB書き込み前にタスクキルされても復元可能）
+  try { localStorage.setItem('bk_' + key, value); } catch {}
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(DB_STORE, 'readwrite');
+      const req = tx.objectStore(DB_STORE).put(value, key);
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  } catch(e) {
+    try { localStorage.setItem(key, value); } catch {}
+  }
+}
+
+async function dbDel(key) {
+  try {
+    const db = await openDB();
+    return new Promise((resolve, reject) => {
+      const tx  = db.transaction(DB_STORE, 'readwrite');
+      const req = tx.objectStore(DB_STORE).delete(key);
+      req.onsuccess = () => resolve();
+      req.onerror   = e => reject(e.target.error);
+    });
+  } catch(e) {
+    try { localStorage.removeItem(key); } catch {}
+  }
+}
+
+// ============================================================
+// 現場管理 + PWA サポート（IndexedDB版）
+// ============================================================
+const SITE_INDEX_KEY   = 'siteIdx_v2';
+const SITE_CURRENT_KEY = 'siteCur_v2';
+let _currentSiteId = null;
+let _saveTimer     = null;
+let _appReady      = false;  // init完了フラグ
+
+async function getSiteIndex() {
+  const raw = await dbGet(SITE_INDEX_KEY);
+  try { return JSON.parse(raw || '[]'); } catch { return []; }
+}
+async function saveSiteIndex(list) { await dbSet(SITE_INDEX_KEY, JSON.stringify(list)); }
+async function getCurrentSiteId()  { return await dbGet(SITE_CURRENT_KEY); }
+async function setCurrentSiteId(id) {
+  _currentSiteId = id;
+  await dbSet(SITE_CURRENT_KEY, id || '');
+}
+function siteDataKey(id) { return 'sd_v2_' + id; }
+
+function escHtml(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* 全入力データを収集 */
+function collectData() {
+  const t1 = {
+    mechName: document.getElementById('t1_mech_name')?.value || '',
+    mechX:    document.getElementById('t1_mech_x')?.value   || '',
+    mechY:    document.getElementById('t1_mech_y')?.value   || '',
+    visName:  document.getElementById('t1_vis_name')?.value || '',
+    visX:     document.getElementById('t1_vis_x')?.value    || '',
+    visY:     document.getElementById('t1_vis_y')?.value    || '',
+    rows: t1Rows.map(r => ({
+      name:   getNameVal(r.id,'t1'),
+      x:      document.getElementById('t1_x_'+r.id)?.value  || '',
+      y:      document.getElementById('t1_y_'+r.id)?.value  || '',
+      dir:    document.getElementById('t1_dir_'+r.id)?.dataset.dir    || 'R',
+      manual: document.getElementById('t1_dir_'+r.id)?.dataset.manual || 'false',
+    }))
+  };
+  const t2 = {
+    mechName: document.getElementById('t2_mech_name')?.value || '',
+    mechX:    document.getElementById('t2_mech_x')?.value   || '',
+    mechY:    document.getElementById('t2_mech_y')?.value   || '',
+    visName:  document.getElementById('t2_vis_name')?.value || '',
+    visX:     document.getElementById('t2_vis_x')?.value    || '',
+    visY:     document.getElementById('t2_vis_y')?.value    || '',
+    rows: t2Rows.map(r => ({
+      name: getNameVal(r.id,'t2'),
+      dist: document.getElementById('t2_dist_'+r.id)?.value || '',
+      deg:  document.getElementById('t2_deg_'+r.id)?.value  || '0',
+      min:  document.getElementById('t2_min_'+r.id)?.value  || '0',
+      sec:  document.getElementById('t2_sec_'+r.id)?.value  || '0',
+      dir:  document.getElementById('t2_dir_'+r.id)?.dataset.dir || 'R',
+    }))
+  };
+  return { t1, t2, savedAt: Date.now() };
+}
+
+/* IndexedDBに保存 */
+async function saveCurrentSite() {
+  if (!_currentSiteId || !_appReady) return;
+  try {
+    const data = collectData();
+    await dbSet(siteDataKey(_currentSiteId), JSON.stringify(data));
+    const list = await getSiteIndex();
+    const site = list.find(s => s.id === _currentSiteId);
+    if (site) { site.updatedAt = data.savedAt; await saveSiteIndex(list); }
+    showSaveIndicator();
+  } catch(e) { console.warn('save error', e); }
+}
+
+/* デバウンス自動保存 (200ms) */
+function autoSave() {
+  if (!_currentSiteId || !_appReady) return;
+  // LocalStorageに即時同期バックアップ（タスクキル対策）
+  _syncBackupNow();
+  if (_saveTimer) clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveCurrentSite, 200);
+}
+
+/* LocalStorageへの即時同期バックアップ（IndexedDB非同期書き込みの前段階） */
+function _syncBackupNow() {
+  if (!_currentSiteId || !_appReady) return;
+  try {
+    const data = collectData();
+    const json = JSON.stringify(data);
+    localStorage.setItem('bk_' + siteDataKey(_currentSiteId), json);
+    // 現場インデックスも更新
+    const raw = localStorage.getItem('bk_' + SITE_INDEX_KEY);
+    if (raw) {
+      try {
+        const list = JSON.parse(raw);
+        const site = list.find(s => s.id === _currentSiteId);
+        if (site) { site.updatedAt = data.savedAt; localStorage.setItem('bk_' + SITE_INDEX_KEY, JSON.stringify(list)); }
+      } catch {}
+    }
+  } catch(e) {}
+}
+
+function showSaveIndicator() {
+  const el = document.getElementById('save-indicator');
+  if (!el) return;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+/* DOMにデータ復元 */
+function restoreData(data) {
+  const t1 = data?.t1;
+  const t2 = data?.t2;
+
+  t1Rows = []; t1RowId = 0;
+  document.getElementById('t1_tbody').innerHTML = '';
+  if (t1) {
+    const map1 = {mechName:'t1_mech_name', mechX:'t1_mech_x', mechY:'t1_mech_y',
+                  visName:'t1_vis_name',   visX:'t1_vis_x',   visY:'t1_vis_y'};
+    Object.entries(map1).forEach(([k,id]) => {
+      const el = document.getElementById(id);
+      if (el && t1[k] !== undefined) el.value = t1[k];
+    });
+    (t1.rows || []).forEach(r => t1AddRow(r.name, r.x, r.y, r.dir || 'R'));
+    (t1.rows || []).forEach((r, i) => {
+      const row = t1Rows[i]; if (!row) return;
+      const dirEl = document.getElementById('t1_dir_' + row.id);
+      if (dirEl && r.manual) dirEl.dataset.manual = r.manual;
+    });
+  }
+
+  t2Rows = []; t2RowId = 0;
+  document.getElementById('t2_tbody').innerHTML = '';
+  if (t2) {
+    const map2 = {mechName:'t2_mech_name', mechX:'t2_mech_x', mechY:'t2_mech_y',
+                  visName:'t2_vis_name',   visX:'t2_vis_x',   visY:'t2_vis_y'};
+    Object.entries(map2).forEach(([k,id]) => {
+      const el = document.getElementById(id);
+      if (el && t2[k] !== undefined) el.value = t2[k];
+    });
+    (t2.rows || []).forEach(r =>
+      t2AddRow(r.name, r.dist, parseInt(r.deg)||0, parseInt(r.min)||0, parseInt(r.sec)||0, r.dir||'R')
+    );
+  }
+
+  t1RecalcAll();
+  t2RecalcAll();
+}
+
+/* 現場切り替え */
+async function selectSite(id) {
+  if (_currentSiteId) await saveCurrentSite();
+  await setCurrentSiteId(id);
+  const list = await getSiteIndex();
+  const site = list.find(s => s.id === id);
+  document.getElementById('header-site-name').textContent = site ? site.name : '現場未選択';
+
+  let saved = null;
+  try { const raw = await dbGet(siteDataKey(id)); saved = raw ? JSON.parse(raw) : null; } catch {}
+  restoreData(saved);
+  closeSiteModal();
+  renderSiteList();
+}
+
+/* 現場新規作成 */
+async function siteCreate() {
+  const input = document.getElementById('site-new-input');
+  const name  = input.value.trim();
+  if (!name) { input.focus(); return; }
+  const list = await getSiteIndex();
+  if (list.some(s => s.name === name)) { alert('同名の現場が既にあります。'); return; }
+  const id = 'site_' + Date.now();
+  list.push({ id, name, createdAt: Date.now(), updatedAt: null });
+  await saveSiteIndex(list);
+  input.value = '';
+  await renderSiteList();
+  await selectSite(id);
+}
+
+/* 現場削除 */
+async function siteDelete(id, e) {
+  e.stopPropagation();
+  const list = await getSiteIndex();
+  const site = list.find(s => s.id === id);
+  if (!site || !confirm('「' + site.name + '」を削除しますか？\n元に戻せません。')) return;
+  await saveSiteIndex(list.filter(s => s.id !== id));
+  await dbDel(siteDataKey(id));
+  if (_currentSiteId === id) {
+    await setCurrentSiteId(null);
+    document.getElementById('header-site-name').textContent = '現場未選択';
+    t1Rows=[]; t1RowId=0; document.getElementById('t1_tbody').innerHTML='';
+    t2Rows=[]; t2RowId=0; document.getElementById('t2_tbody').innerHTML='';
+    t1RecalcAll(); t2RecalcAll();
+  }
+  await renderSiteList();
+}
+
+/* モーダルリスト描画 */
+async function renderSiteList() {
+  const list = await getSiteIndex();
+  document.getElementById('site-count').textContent = list.length + '件';
+  const el = document.getElementById('site-list');
+  if (list.length === 0) {
+    el.innerHTML = '<div class="site-list-empty"><span class="big">🏗</span>現場がまだありません<br>上のフォームから作成してください</div>';
+    return;
+  }
+  const sorted = [...list].sort((a,b) => (b.updatedAt||b.createdAt) - (a.updatedAt||a.createdAt));
+  el.innerHTML = sorted.map(site => {
+    const cur = site.id === _currentSiteId;
+    const dt  = site.updatedAt
+      ? new Date(site.updatedAt).toLocaleDateString('ja-JP',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'})
+      : '未使用';
+    return `<div class="site-item${cur?' current':''}" onclick="selectSite('${site.id}')">
+      <div class="site-icon">${cur?'✅':'🏗'}</div>
+      <div class="site-info">
+        <div class="site-name">${escHtml(site.name)}</div>
+        <div class="site-meta">最終更新: ${dt}</div>
+      </div>
+      <span class="site-current-badge">使用中</span>
+      <button class="site-delete-btn" onclick="siteDelete('${site.id}',event)">🗑</button>
+    </div>`;
+  }).join('');
+}
+
+async function openSiteModal() {
+  await renderSiteList();
+  document.getElementById('site-modal-overlay').classList.add('open');
+  setTimeout(() => document.getElementById('site-new-input')?.focus(), 150);
+}
+function closeSiteModal() {
+  document.getElementById('site-modal-overlay').classList.remove('open');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('site-modal-overlay').addEventListener('click', function(e) {
+    if (e.target === this) closeSiteModal();
+  });
+});
+
+// ============================================================
+// PWA バナー（iOS Safari 非PWAモード時のみ表示）
+// ============================================================
+async function showPwaBannerIfNeeded() {
+  const isStandalone = window.navigator.standalone === true;
+  const dismissed    = await dbGet('pwaBannerDismissed');
+  if (isStandalone || dismissed) return;
+  const isIos    = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios|opios|chrome/i.test(navigator.userAgent);
+  if (!isIos || !isSafari) return;
+  setTimeout(() => document.getElementById('pwa-banner').classList.add('show'), 2000);
+}
+
+async function dismissBanner() {
+  document.getElementById('pwa-banner').classList.remove('show');
+  await dbSet('pwaBannerDismissed', '1');
+}
+
+// バックグラウンド復帰時に再保存（念のため二重対策）
+document.addEventListener('visibilitychange', () => {
+  if (!_currentSiteId || !_appReady) return;
+  if (document.visibilityState === 'hidden') {
+    // タスクキル・スワイプ退避時: 即時同期バックアップ → 非同期保存
+    _syncBackupNow();
+    saveCurrentSite().catch(() => {});
+  } else if (document.visibilityState === 'visible') {
+    // 復帰時: 念のため再保存
+    saveCurrentSite().catch(() => {});
+  }
+});
+
+// pagehide: iOS PWAでスワイプ退避時に確実に発火
+window.addEventListener('pagehide', () => {
+  if (!_currentSiteId || !_appReady) return;
+  _syncBackupNow();
+});
+
+// pageshow（iOS PWA でバックナビゲーション時にも発火）
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted && _currentSiteId && _appReady) {
+    saveCurrentSite();
+  }
+});
+(async function init() {
+  // ---- IndexedDB初期化 ----
+  try { await openDB(); } catch(e) { console.warn('DB open failed', e); }
+
+  // ---- 入力変更を自動保存にフック ----
+  document.body.addEventListener('input',  autoSave);
+  document.body.addEventListener('change', autoSave);
+  new MutationObserver(muts => {
+    for (const m of muts) {
+      if (m.target.classList?.contains('name-editable')) { autoSave(); break; }
+    }
+  }).observe(document.body, { subtree: true, characterData: true, childList: true });
+
+  // ---- 前回の現場を復元 ----
+  const savedId = await getCurrentSiteId();
+  const list    = await getSiteIndex();
+  const site    = savedId ? list.find(s => s.id === savedId) : null;
+
+  if (site) {
+    _currentSiteId = savedId;
+    document.getElementById('header-site-name').textContent = site.name;
+    let saved = null;
+    try {
+      const raw = await dbGet(siteDataKey(savedId));
+      saved = raw ? JSON.parse(raw) : null;
+    } catch {}
+    if (saved) {
+      restoreData(saved);
+    } else {
+      [['K1',0,0],['K2',0,0]].forEach(([n,x,y]) => t1AddRow(n,x,y,'R'));
+      t2AddRow('K1','',0,0,0,'R'); t2AddRow('K2','',0,0,0,'R');
+    }
+  } else {
+    openSiteModal();
+  }
+
+  // ---- appReady フラグON（これ以降のautoSaveが有効になる）----
+  _appReady = true;
+
+  // ---- PWAバナー表示判定 ----
+  showPwaBannerIfNeeded();
+})();
+</script>
+</body>
+</html>
