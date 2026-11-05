@@ -884,6 +884,111 @@
   }
   .point-dropdown-item.selected .pd-check { display: block; }
 
+
+  /* ===== 図面(PDF)連携・座標読取 ===== */
+  tbody tr.pl-sel td,
+  tbody tr.pl-sel td.row-num,
+  tbody tr.pl-sel td.name-cell { background: #d3f2dc !important; }
+  tbody tr.pl-sel td.name-cell span.name-editable { color: #0b6b2a; }
+  span.name-editable[contenteditable="false"] { cursor: pointer; -webkit-user-select: none; user-select: none; }
+  td.row-num { cursor: pointer; }
+
+  .pl-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+  .pl-sel-info { margin-top: 10px; font-size: 16px; color: var(--text-muted); }
+  .pl-sel-info b { color: #0b6b2a; font-size: 19px; }
+
+  .pl-modal {
+    position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 600;
+    display: none; background: rgba(15,23,32,0.55);
+  }
+  .pl-modal.open { display: flex; }
+
+  /* 読取結果の確認シート */
+  #pl-review { align-items: flex-end; justify-content: center; z-index: 700; }
+  .pl-sheet {
+    background: var(--surface); width: 100%; max-width: 760px; max-height: 92%;
+    border-radius: 14px 14px 0 0; display: flex; flex-direction: column; overflow: hidden;
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  .pl-sheet-h { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 12px 14px; border-bottom: 3px solid var(--accent); font-size: 19px; font-weight: 800; }
+  .pl-sheet-b { padding: 10px 12px; overflow: auto; -webkit-overflow-scrolling: touch; flex: 1; }
+  .pl-sheet-f { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 10px 12px;
+    border-top: 1px solid var(--border); background: var(--surface2); }
+  .pl-sheet-f select { font-size: 16px; padding: 7px; border-radius: 5px; border: 1px solid var(--border); font-family: var(--sans); }
+  #pl_rv_img { margin-bottom: 8px; text-align: center; background: #888; border-radius: 6px; overflow: hidden; }
+  #pl_rv_img canvas { max-width: 100%; max-height: 150px; display: block; margin: 0 auto; }
+  table.pl-rv-table { width: 100%; border-collapse: collapse; font-size: 16px; }
+  table.pl-rv-table th { background: var(--surface2); padding: 6px 4px; border-bottom: 1px solid var(--border); font-size: 14px; position: sticky; top: 0; }
+  table.pl-rv-table td { padding: 3px 3px; border-bottom: 1px solid var(--border); }
+  table.pl-rv-table input[type=text] { width: 100%; font-size: 16px; padding: 6px 5px; border: 1px solid var(--border);
+    border-radius: 4px; background: var(--input-bg); font-family: var(--mono); }
+  table.pl-rv-table input[type=checkbox] { width: 22px; height: 22px; }
+  table.pl-rv-table tr.pl-warn td { background: #fff6dd; }
+  table.pl-rv-table tr.pl-bad td { background: #fde2e2; }
+  table.pl-rv-table .pl-rv-why { font-size: 12px; color: #b91c1c; line-height: 1.3; }
+  /* 小数桁数が他の行と違う座標（入力・読取ミスの疑い） */
+  input.coord-odd { background: #ffe3b3 !important; border-color: #d97706 !important; box-shadow: 0 0 0 2px rgba(217,119,6,.35); }
+
+  /* 図面ビューア */
+  #pl-viewer, #gv-viewer { flex-direction: column; background: #20252d; }
+  #gv-viewer { z-index: 650; }
+  #gv_panel { max-height: 42vh; overflow-y: auto; }
+  .pl-vhead { display: flex; align-items: center; gap: 8px; background: var(--surface);
+    padding: 8px 10px; padding-top: calc(8px + env(safe-area-inset-top)); border-bottom: 3px solid var(--accent); }
+  .pl-vhead .pl-vtitle { flex: 1; font-weight: 800; font-size: 16px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pl-vhead select { font-size: 16px; padding: 6px; border-radius: 5px; border: 1px solid var(--border); font-family: var(--sans); }
+  .pl-vinfo { background: var(--surface); padding: 6px 12px; font-size: 16px; line-height: 1.45;
+    border-bottom: 1px solid var(--border); min-height: 56px; }
+  .pl-vinfo .pl-r1 { font-weight: 700; }
+  .pl-vinfo .pl-r2 { font-family: var(--mono); font-size: 18px; }
+  .pl-vinfo small { color: var(--text-muted); font-size: 13px; }
+  .pl-cwrap { flex: 1; position: relative; overflow: hidden; background: #dfe4ea; touch-action: none; min-height: 120px; }
+  #pl_canvas { position: absolute; left: 0; top: 0; touch-action: none; display: block; }
+  .pl-vtools { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--border); }
+  .pl-vtools button { flex: 1 1 auto; font-family: var(--sans); font-size: 14px; font-weight: 700; padding: 8px 8px;
+    border-radius: 8px; border: 2px solid var(--border); background: var(--surface2); color: var(--text); min-height: 40px; white-space: nowrap; }
+  .pl-vtools button.on { border-color: var(--accent); background: var(--accent-dim); color: var(--accent2); }
+  .pl-vtools button#pl_m_mech.on { border-color: #dc2626; background: rgba(220,38,38,.12); color: #b91c1c; }
+  .pl-vtools button#pl_m_vis.on  { border-color: #2563eb; background: rgba(37,99,235,.12); color: #1d4ed8; }
+  .pl-vtools button#pl_m_calib.on{ border-color: #d97706; background: rgba(217,119,6,.14); color: #b45309; }
+
+  .pl-calib { display: none; background: #fff8e8; border-top: 2px solid #d97706; padding: 8px 12px;
+    max-height: 38%; overflow: auto; font-size: 15px; line-height: 1.45; }
+  .pl-calib.open { display: block; }
+  .pl-calib select { font-size: 16px; padding: 6px; border-radius: 5px; border: 1px solid var(--border); font-family: var(--sans); }
+  .pl-calib .pl-cal-row { display: flex; align-items: center; justify-content: space-between; gap: 8px;
+    padding: 3px 0; border-bottom: 1px dashed #e5cf9f; font-family: var(--mono); font-size: 15px; }
+  .pl-calib .pl-cal-row button { font-size: 14px; padding: 2px 9px; border-radius: 5px; border: 1px solid var(--border); background: #fff; }
+  .pl-calib .pl-cal-msg { margin-top: 6px; font-weight: 700; }
+  .pl-calib .pl-ok { color: #0b6b2a; } .pl-calib .pl-ng { color: #b91c1c; }
+
+  #pl-toast { position: fixed; left: 50%; bottom: calc(90px + env(safe-area-inset-bottom)); transform: translateX(-50%);
+    background: rgba(20,26,34,.92); color: #fff; padding: 9px 16px; border-radius: 20px; font-size: 15px;
+    z-index: 900; max-width: 90%; text-align: center; opacity: 0; pointer-events: none; transition: opacity .2s; }
+  #pl-toast.show { opacity: 1; }
+  #pl-busy { position: fixed; left: 0; top: 0; right: 0; bottom: 0; z-index: 950; display: none;
+    align-items: center; justify-content: center; background: rgba(15,23,32,.45); }
+  #pl-busy.show { display: flex; }
+  #pl-busy .pl-busy-box { background: #fff; border-radius: 12px; padding: 18px 22px; font-size: 17px; font-weight: 700; max-width: 85%; text-align: center; }
+  #pl-busy .pl-spin { width: 28px; height: 28px; border: 4px solid var(--border); border-top-color: var(--accent);
+    border-radius: 50%; margin: 0 auto 10px; animation: plspin .8s linear infinite; }
+  @keyframes plspin { to { transform: rotate(360deg); } }
+
+  .pl-rt .btn.on { border-color: var(--accent); background: var(--accent-dim); color: var(--accent2); }
+  /* 下部パネルのコンパクト化（図面表示エリアを広く） */
+  .pl-calib { padding: 4px 10px; font-size: 13px; line-height: 1.35; max-height: 30vh; overflow-y: auto; }
+  .pl-calib .btn { min-height: 34px; padding: 4px 10px; font-size: 14px; }
+  .pl-calib select { font-size: 14px; padding: 3px; }
+  .pl-calib .pl-cal-row { padding: 1px 0; font-size: 13px; }
+  .pl-cal-msg { font-size: 13px; margin: 2px 0; }
+  .pl-vtools { flex-wrap: nowrap; overflow-x: auto; gap: 4px; padding: 4px 6px; padding-bottom: calc(4px + env(safe-area-inset-bottom)); }
+  .pl-vtools button { flex: 0 0 auto; font-size: 13px; padding: 6px 9px; white-space: nowrap; }
+  .pl-vinfo { padding: 3px 10px; font-size: 14px; }
+  .pl-vinfo .pl-r2 { font-size: 15px; }
+  .pl-vhead { padding-top: 4px; padding-bottom: 4px; }
+  #gv_panel { max-height: 30vh; }
 </style>
 </head>
 <body>
@@ -1005,6 +1110,25 @@
         <div class="ref-card"><div class="label">測量角度（右回り）</div><div class="value" id="r_right">—</div></div>
         <div class="ref-card"><div class="label">測量角度（左回り）</div><div class="value" id="r_left">—</div></div>
       </div>
+    </div>
+  </div>
+
+  <div class="section">
+    <div class="section-header">🗺 図面（PDF）・座標の自動読取</div>
+    <div class="section-body">
+      <div class="help-box" id="pl_status">図面は未登録です。</div>
+      <div class="pl-btns">
+        <button class="btn btn-primary" onclick="plPickPlan()">📄 図面PDF/画像を登録</button>
+        <button class="btn btn-primary" onclick="plOpenViewer()">🗺 図面を表示</button>
+      </div>
+      <div class="pl-btns">
+        <button class="btn btn-primary" onclick="plReadCoordsFromPlan()">🔍 座標読取（範囲指定）</button>
+        <button class="btn btn-danger" onclick="plRemovePlan()">図面を削除</button>
+      </div>
+      <div class="pl-btns">
+        <button class="btn btn-primary" onclick="jwPick()">🏗 JWWで通り芯を測点化（誤差0）</button>
+      </div>
+      <div class="pl-sel-info" id="pl_sel_info"></div>
     </div>
   </div>
 
@@ -1167,12 +1291,12 @@
         <p>3. 機械点・視準点のポイント名を変更すると、計算点一覧の同名行のXY座標が自動反映されます。</p>
         <p>4. 「計算点一覧」に各測点のポイント名・X座標・Y座標を入力すると、距離・測量角度が自動計算されます。</p>
         <p>5. 測点名はクリックして直接編集・コピー＆ペーストが可能です。</p>
-        <p>6. 向き（L/R）は自動判定されます（JWW準拠: 右旋・左旋のうち小さい方を表示）。タップで手動切替も可能です。</p>
+        <p>6. 向き（右／左）は、機械を視準点に向けた状態から測点方向へ<b>どちらに回せばよいか</b>を表します（右=時計回り、左=反時計回り）。右旋・左旋のうち小さい方が自動表示され、タップで手動切替も可能です。</p>
         <br>
         <p><strong>【距離・角度 → 座標】タブ</strong></p>
         <p>1. 機械点・視準点を設定（座標入力）。</p>
         <p>2. 各測点の距離・角度（度・分・秒）を入力するとX・Y座標が自動計算されます。</p>
-        <p>3. 向き「L」=左回り（視準点より左）、「R」=右回り（視準点より右）。</p>
+        <p>3. 向き「左」=視準点から左（反時計回り）に回した角度、「右」=視準点から右（時計回り）に回した角度。</p>
         <br>
         <p><strong>【距離表示について】</strong></p>
         <p>距離は小数点以下3桁（0.000）で表示。4桁目以降は切り上げ処理しています。</p>
@@ -1180,12 +1304,155 @@
         <p><strong>【測量角度の定義】</strong></p>
         <p>・測量角度（右回り）: 視準点方向を0°として、右回り（時計回り）で表した角度</p>
         <p>・測量角度（左回り）: 視準点方向を0°として、左回り（反時計回り）で表した角度</p>
-        <p>・度°分′秒″: 向き（L/R）に応じた角度の60進数表記</p>
+        <p>・度°分′秒″: 向き（右／左）に応じた角度の60進数表記</p>
         <br>
+        <p><strong>【図面（PDF）・座標の自動読取】</strong></p>
+        <p>1. 「座標読取（範囲指定）」…登録した図面が開きます。図面を拡大し、座標が書いてある部分を指でなぞって範囲指定し「この範囲を登録」。他にも座標があれば続けて範囲指定→登録を繰り返し、最後に「座標変換開始」を押すと「ポイント名 X Y」を自動で読み取り、確認画面を経て計算点一覧に取り込みます。PDFに文字情報がある範囲は誤読なし、無い範囲はOCR（読み違いの可能性あり）です。確認画面で必ず数値を見比べてください。</p>
+        <p>2. 「図面PDF/画像を登録」…現場ごとに図面を保存します。「図面を表示」で図面を開き、<b>📐位置合わせ</b>で座標が分かっている測点を2点以上タップすると、図面と座標が結び付きます（3点目で誤差を確認できます）。</p>
+        <p>3. 図面上では 🔴機械点・🔵視準点・🟢選択した測点 が半透明の丸で表示されます。計算点一覧の測点名（または#）をタップして測点を選んでから「図面を表示」を押すと、その測点が緑丸で表示されます。選択中の測点名をもう一度タップすると名前を編集できます。</p>
+        <p>4. 図面上でも、モード（🔴機械点／🔵視準点／🟢測点）を選んで測点をタップすると設定でき、機械点からの<b>距離と角度</b>が図面に表示されます。点が無い場所をタップした場合は、図面から座標を算出して「表に追加」できます。</p>
+        <p>※ 図面の座標精度は、位置合わせでタップした位置の精度に依存します。拡大して正確にタップしてください。読取ライブラリは初回のみ通信します。</p>
+        <br>
+        <p><strong>【歪み補正】</strong></p>
+        <p>・位置合わせ点が4点以上あると縦横別縮尺を自動補正、3点以上で各点の残差を近傍に配分するため、位置合わせした点そのものはズレません。「ズレ」が大きい点（⚠）はタップし直してください。</p>
+        <br>
+        <p><strong>【JWWで通り芯を測点化（誤差0）】</strong></p>
+        <p>1. 計算点一覧に境界点（点名・X・Y）を入れておく。2.「JWWで通り芯を測点化」でJWW（.jww／.bak）を選ぶ。3. 図面上の点名と境界点が自動で対応付けられ、最大残差が表示されます。4. 通り芯は「レイヤA-A」または「赤の一点鎖線（線色8）」を自動認識し、交点を厳密に計算します。名前を直して追加してください。※境界点が「点」図形で、点名の文字の近くにある図面が対象です。</p>
         <p><strong>【JWW連携について】</strong></p>
         <p>JWW内で「測定」→「座標測定」を選択し、基準点（機械設置点）を指定。視準点を選択後、「測定結果書き込み」で座標値を記録し、本ツールに貼り付けてご使用ください。</p>
       </div>
     </div>
+  </div>
+</div>
+
+
+<!-- ===== 図面(PDF)連携 UI ===== -->
+<input type="file" id="pl_file_plan" accept="application/pdf,image/*" style="display:none" onchange="plOnPlanFile(this.files[0])">
+
+<div id="pl-toast"></div>
+<div id="pl-busy"><div class="pl-busy-box"><div class="pl-spin"></div><div id="pl_busy_msg">処理中…</div></div></div>
+
+<!-- 読取結果の確認 -->
+<input type="file" id="jw_file" accept=".jww,.bak,.JWW,.BAK" style="display:none" onchange="jwOnFile(this.files[0])">
+<div id="jw-modal" class="pl-modal">
+  <div class="pl-sheet">
+    <div class="pl-sheet-h"><span>🏗 JWWから通り芯を測点化</span><button class="btn btn-secondary" onclick="jwClose()">✕</button></div>
+    <div class="pl-sheet-b">
+      <div class="help-box" id="jw_note" style="margin-bottom:8px;"></div>
+      <table class="pl-rv-table">
+        <thead><tr><th style="width:34px">取込</th><th>測点名</th><th>X座標</th><th>Y座標</th></tr></thead>
+        <tbody id="jw_body"></tbody>
+      </table>
+      <div class="help-box" style="margin-top:8px;">JWWの線データ（倍精度）から交点を直接計算し、計算点一覧の境界点で位置合わせしています。タップや画像の読取は使わないため、図面の境界点が座標どおりなら誤差は0です。</div>
+    </div>
+    <div class="pl-sheet-f">
+      <select id="jw_dig" onchange="jwRows()"><option value="6" selected>小数6桁（誤差0）</option><option value="4">小数4桁</option><option value="3">小数3桁</option></select>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="jwAdd()">計算点一覧へ追加</button>
+    </div>
+  </div>
+</div>
+
+<div id="pl-review" class="pl-modal">
+  <div class="pl-sheet">
+    <div class="pl-sheet-h"><span>🔍 読取結果の確認</span><button class="btn btn-secondary" onclick="plReviewClose()">✕</button></div>
+    <div class="pl-sheet-b">
+      <div class="help-box" id="pl_rv_note" style="margin-bottom:8px;"></div>
+      <div id="pl_rv_img"></div>
+      <div class="flex-row" style="margin-bottom:6px;">
+        <button class="btn btn-secondary" onclick="plRvAll(true)">全選択</button>
+        <button class="btn btn-secondary" onclick="plRvAll(false)">全解除</button>
+        <span id="pl_rv_count" style="color:var(--text-muted);font-size:15px;"></span>
+      </div>
+      <table class="pl-rv-table">
+        <thead><tr><th style="width:34px">取込</th><th>測点名</th><th>X座標</th><th>Y座標</th></tr></thead>
+        <tbody id="pl_rv_body"></tbody>
+      </table>
+      <div class="help-box" style="margin-top:8px;">⚠ の行は読取に自信がない行です（O→0等の補正あり／名前に数字が混在）。<b>元データと見比べて数値を修正</b>してから取り込んでください。</div>
+    </div>
+    <div class="pl-sheet-f">
+      <select id="pl_rv_mode">
+        <option value="update">同名の測点は座標を更新</option>
+        <option value="append">すべて新しい行として追加</option>
+      </select>
+      <button class="btn btn-primary" style="margin-left:auto" onclick="plReviewApply()">表に取り込む</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通り芯図ビューア -->
+<input type="file" id="gv_file" accept="application/pdf,image/*" style="display:none" onchange="gvOnFile(this.files[0])">
+<div id="gv-viewer" class="pl-modal">
+  <div class="pl-vhead"><button class="btn btn-secondary" onclick="gvClose()">✕ 閉じる</button><div class="pl-vtitle" id="gv_title">通り芯図</div><select id="gv_page" style="display:none" onchange="gvPage(+this.value)"></select></div>
+  <div class="pl-vinfo" id="gv_info"></div>
+  <div class="pl-cwrap" id="gv_cwrap"><canvas id="gv_canvas"></canvas></div>
+  <div class="pl-calib" id="gv_panel">
+    <div id="gv_calpart">
+      <div style="font-size:13px"><b>📐 ①境界点</b>：境界点を選び、<b>十字線の中心</b>を合わせて「✛ 設定」（2点以上）。</div>
+      <div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+        <select id="gv_cal_pt"></select>
+        <label style="font-size:15px;">座標の向き <select id="gv_cal_yup" onchange="gvYup(this.value)"><option value="1">X右・Y上（CAD座標）</option><option value="0">X上・Y右（測量座標）</option></select></label>
+      </div>
+      <div id="gv_cal_list"></div>
+      <div class="pl-cal-msg" id="gv_cal_msg"></div>
+      <div style="margin-top:6px;display:flex;gap:8px;"><button class="btn btn-secondary" onclick="gvCalClear()">全て削除</button><button class="btn btn-primary" onclick="gvMode('pick')">完了 → ②通り芯へ</button></div>
+    </div>
+    <div id="gv_pickpart" style="display:none">
+      <div style="font-size:13px"><b>✚ ②通り芯交点</b>：十字線を交点に合わせて「✛ 設定」（◇に吸着）。</div>
+      <div id="gv_pt_list"></div>
+      <div style="margin-top:6px;display:flex;gap:8px;flex-wrap:wrap;"><button class="btn btn-secondary" onclick="gvDetect()">🔎 交点を再検出</button><button class="btn btn-primary" onclick="gvAdd()">➕ 計算点一覧へ追加</button></div>
+    </div>
+  </div>
+  <div class="pl-vtools">
+    <button id="gv_m_calib" onclick="gvMode('calib')">📐 ①境界点で位置合わせ</button>
+    <button id="gv_m_pick" onclick="gvMode('pick')">✚ ②通り芯交点を選ぶ</button>
+    <button onclick="gvCrossSet()" style="background:#e11d48;color:#fff;border-color:#e11d48">✛ 設定</button>
+    <button onclick="gvFit()">⤢ 全体</button>
+  </div>
+</div>
+
+<!-- 図面ビューア -->
+<div id="pl-viewer" class="pl-modal">
+  <div class="pl-vhead">
+    <button class="btn btn-secondary" onclick="plCloseViewer()">✕ 閉じる</button>
+    <div class="pl-vtitle" id="pl_v_title">図面</div>
+    <select id="pl_v_page" style="display:none" onchange="plChangePage(+this.value)"></select>
+  </div>
+  <div class="pl-vinfo" id="pl_v_info"></div>
+  <div class="pl-cwrap" id="pl_cwrap"><canvas id="pl_canvas"></canvas></div>
+  <div class="pl-calib" id="pl_calib">
+    <div style="font-size:13px"><b>📐 位置合わせ</b>：測点を選び、<b>十字線の中心</b>を図面の点に合わせて「✛ 設定」。2点以上（3点目で誤差確認）。</div>
+    <div style="margin:6px 0;display:flex;flex-wrap:wrap;gap:10px;align-items:center;">
+      <select id="pl_cal_pt"></select>
+      <label style="font-size:15px;">座標の向き <select id="pl_cal_yup" onchange="plYupChange(this.value)"><option value="1">X右・Y上（CAD座標）</option><option value="0">X上・Y右（測量座標）</option></select></label>
+      <label style="font-size:15px;">歪み補正 <select id="pl_cal_fit" onchange="plFitModeChange(this.value)"><option value="auto">自動</option><option value="sim">なし（2点式）</option></select></label>
+    </div>
+    <div id="pl_cal_list"></div>
+    <div class="pl-cal-msg" id="pl_cal_msg"></div>
+    <div style="margin-top:6px;display:flex;gap:8px;">
+      <button class="btn btn-secondary" onclick="plCalClear()">全て削除</button>
+      <button class="btn btn-primary" onclick="plSetMode('target')">完了</button>
+    </div>
+  </div>
+  <div class="pl-calib" id="pl_range">
+    <div class="pl-rt" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-secondary on" id="pl_rt_draw" onclick="plRangeToolSet('draw')">▭ 範囲指定</button>
+      <button class="btn btn-secondary" id="pl_rt_pan" onclick="plRangeToolSet('pan')">✋ 移動</button>
+      <button class="btn btn-secondary" onclick="plRangeAdd()">＋ 登録</button>
+      <button class="btn btn-primary" onclick="plRangeConvert()">▶ 座標変換開始</button>
+    </div>
+    <div id="pl_range_list"></div>
+    <div class="pl-cal-msg" id="pl_range_msg"></div>
+  </div>
+  <div class="pl-vtools">
+    <button id="pl_m_mech"   onclick="plSetMode('mech')">🔴 機械点</button>
+    <button id="pl_m_vis"    onclick="plSetMode('vis')">🔵 視準点</button>
+    <button id="pl_m_target" onclick="plSetMode('target')">🟢 測点</button>
+    <button id="pl_m_calib"  onclick="plSetMode('calib')">📐 位置合わせ</button>
+    <button id="pl_m_range"  onclick="plSetMode('range')">🔍 座標読取</button>
+    <button id="pl_b_set" onclick="plCrossSet()" style="display:none">✛ 設定</button>
+    <button onclick="plFitClick()">⤢ 全体</button>
+    <button onclick="plCenterTarget()">🎯 選択点へ</button>
+    <button id="pl_btn_names" class="on" onclick="plToggleNames()">Aa 名前</button>
   </div>
 </div>
 
@@ -1297,7 +1564,7 @@ function coordBlur(el, callback) {
     if (!isNaN(n)) {
       // 小数桁を最大4桁まで保持（末尾ゼロも含む入力を尊重）
       const decMatch = v.match(/\.(\d+)/);
-      const decLen = decMatch ? Math.min(decMatch[1].length, 4) : 0;
+      const decLen = decMatch ? Math.min(decMatch[1].length, 6) : 0;
       el.value = decLen > 0 ? n.toFixed(decLen) : String(n);
     } else {
       el.value = '0';
@@ -1312,20 +1579,18 @@ function coordBlur(el, callback) {
 }
 
 // =============================================
-// 方位角計算 (JWW CAD座標系: X=東, Y=北)
-//   方位角 = 北(Y+)を0°として右回り（時計回り）0〜360°
-//   atan2(dX, dY) = 北基準・右回り
+// 方位角計算 (測量座標系: X=北(上), Y=東(右))  ※JWWの座標測定値と同じ向き
+//   方位角 = X+方向(北)を0°として時計回り(=右回り)に増える 0〜360°
+//   atan2(dY, dX) = 北基準・時計回り
 // =============================================
 function calcBearing(mx, my, px, py) {
-  const dX = px - mx; // 東西差（X+東、X-西）
-  const dY = py - my; // 南北差（Y+南、Y-北）← JWW座標系はY+が南
+  const dX = px - mx; // 南北差（X+が北）
+  const dY = py - my; // 東西差（Y+が東）
   const dist = Math.sqrt(dX * dX + dY * dY);
   if (dist === 0) return { dist: 0, bearing: 0 };
 
-  // JWW座標系: X=東西(+東), Y=南北(+南)
-  // 北基準右回り方位角 = atan2(東差=dX, 南差=dY)
-  // ※Y+南の座標系では「南方向=前方」なので atan2(dX, dY) が正しい
-  let bearing = Math.atan2(dX, dY) * 180 / Math.PI;
+  // 北基準・時計回りの方位角 = atan2(東差=dY, 北差=dX)
+  let bearing = Math.atan2(dY, dX) * 180 / Math.PI;
   bearing = ((bearing % 360) + 360) % 360;
   return { dist, bearing };
 }
@@ -1509,6 +1774,28 @@ function t1RecalcAll() {
 
   document.getElementById('t1_rowcount').textContent = t1Rows.length;
   t1UpdateSummary();
+  plMarkOddCoords();
+}
+
+/** 計算点一覧のX・Y列で、小数の桁数が他の行と違うセルをオレンジで強調（桁落ち・入力ミスの発見用） */
+function plDecLen(v) { const m = /^-?\d+(?:\.(\d+))?$/.exec(String(v).trim()); return m ? (m[1] || '').length : -1; }
+function plMarkOddCoords() {
+  ['x', 'y'].forEach(ax => {
+    const cells = t1Rows.map(r => document.getElementById('t1_' + ax + '_' + r.id)).filter(Boolean);
+    const lens = cells.map(el => plDecLen(el.value));
+    const valid = lens.filter(l => l >= 0);
+    cells.forEach(el => { el.classList.remove('coord-odd'); el.title = ''; });
+    if (valid.length < 5) return;
+    const cnt = {}; valid.forEach(l => cnt[l] = (cnt[l] || 0) + 1);
+    let mode = valid[0]; Object.keys(cnt).forEach(k => { if (cnt[k] > cnt[mode]) mode = +k; });
+    if (cnt[mode] < valid.length * 0.7) return;
+    cells.forEach((el, i) => {
+      if (lens[i] >= 0 && lens[i] !== mode) {
+        el.classList.add('coord-odd');
+        el.title = '小数が' + lens[i] + '桁です（他の行は' + mode + '桁）。桁落ち・入力ミスがないか確認してください';
+      }
+    });
+  });
 }
 
 function t1RecalcRow(id, mx, my, visBearing, px, py) {
@@ -1545,7 +1832,7 @@ function t1RecalcRow(id, mx, my, visBearing, px, py) {
     dir = rightAngle <= 180 ? 'R' : 'L';
     if (dirEl) {
       dirEl.dataset.dir = dir;
-      dirEl.textContent = dir;
+      dirEl.textContent = dirLabel(dir);
       dirEl.className = 'dir-badge dir-' + dir;
     }
   }
@@ -1583,12 +1870,14 @@ function t1AddRow(name = '', x = '', y = '', dir = 'R') {
   const yVal = y !== '' ? y : '';
 
   tr.innerHTML = `
-    <td class="row-num" style="position:-webkit-sticky;position:sticky;left:0;z-index:10;">${t1Rows.length}</td>
+    <td class="row-num" onclick="plSelectRow(${id})" style="position:-webkit-sticky;position:sticky;left:0;z-index:10;">${t1Rows.length}</td>
     <td class="name-cell" style="position:-webkit-sticky;position:sticky;left:32px;z-index:10;">
       <span class="name-editable"
             id="t1_name_${id}"
-            contenteditable="true"
+            contenteditable="false"
             spellcheck="false"
+            onclick="plNameTap(${id}, this)"
+            onblur="this.setAttribute('contenteditable','false')"
             oninput="t1OnRowNameChange(${id})"
       >${name}</span>
     </td>
@@ -1598,7 +1887,7 @@ function t1AddRow(name = '', x = '', y = '', dir = 'R') {
     <td class="angle-dms" id="t1_deg_${id}">—</td>
     <td class="angle-dms" id="t1_min_${id}">—</td>
     <td class="angle-dms" id="t1_sec_${id}">—</td>
-    <td><span class="dir-badge dir-${dir}" id="t1_dir_${id}" data-dir="${dir}" data-manual="false" onclick="t1ToggleDir(${id})">${dir}</span></td>
+    <td><span class="dir-badge dir-${dir}" id="t1_dir_${id}" data-dir="${dir}" data-manual="false" onclick="t1ToggleDir(${id})">${dirLabel(dir)}</span></td>
     <td><button class="btn btn-danger" onclick="t1DeleteRow(${id})">✕</button></td>
   `;
   tbody.appendChild(tr);
@@ -1654,7 +1943,7 @@ function t1ToggleDir(id) {
   const nxt = el.dataset.dir === 'R' ? 'L' : 'R';
   el.dataset.dir = nxt;
   el.dataset.manual = 'true'; // ユーザー手動設定
-  el.textContent = nxt;
+  el.textContent = dirLabel(nxt);
   el.className = 'dir-badge dir-' + nxt;
   t1RecalcAll();
 }
@@ -1721,7 +2010,7 @@ function t1ExportCSV() {
     const x = document.getElementById('t1_x_' + row.id)?.value || '';
     const y = document.getElementById('t1_y_' + row.id)?.value || '';
     const get = id => document.getElementById(id)?.textContent || '';
-    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    const dir = dirLabel(document.getElementById('t1_dir_' + row.id)?.dataset.dir || 'R');
     csv += `${name},${x},${y},${get('t1_dist_' + row.id)},${get('t1_right_' + row.id)},${get('t1_left_' + row.id)},${get('t1_deg_' + row.id)},${get('t1_min_' + row.id)},${get('t1_sec_' + row.id)},${dir}\n`;
   });
   downloadFile('座標計算結果.csv', csv, 'text/csv;charset=utf-8;');
@@ -1735,7 +2024,7 @@ function t1ExportExcel() {
     const x = document.getElementById('t1_x_' + row.id)?.value || '';
     const y = document.getElementById('t1_y_' + row.id)?.value || '';
     const get = id => document.getElementById(id)?.textContent || '';
-    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    const dir = dirLabel(document.getElementById('t1_dir_' + row.id)?.dataset.dir || 'R');
     rows.push([name, x, y,
       get('t1_dist_' + row.id), get('t1_right_' + row.id), get('t1_left_' + row.id),
       get('t1_deg_' + row.id), get('t1_min_' + row.id), get('t1_sec_' + row.id), dir]);
@@ -1750,7 +2039,7 @@ function t1ExportTSV() {
     const x = document.getElementById('t1_x_' + row.id)?.value || '';
     const y = document.getElementById('t1_y_' + row.id)?.value || '';
     const get = id => document.getElementById(id)?.textContent || '';
-    const dir = document.getElementById('t1_dir_' + row.id)?.dataset.dir || '';
+    const dir = dirLabel(document.getElementById('t1_dir_' + row.id)?.dataset.dir || 'R');
     tsv += [name, x, y, get('t1_dist_' + row.id), get('t1_right_' + row.id), get('t1_left_' + row.id),
             get('t1_deg_' + row.id), get('t1_min_' + row.id), get('t1_sec_' + row.id), dir].join('\t') + '\n';
   });
@@ -1854,11 +2143,10 @@ function t2RecalcRow(id, mx, my, visBearing) {
   let rightAngle = (bearing - visBearing + 360) % 360;
   let leftAngle = rightAngle === 0 ? 0 : 360 - rightAngle;
 
-  // 座標計算: JWW座標系 X=東(+), Y=南(+) ← Y軸が通常と逆
-  //   北基準右回り bearing → X(東) += dist*sin(bearing), Y(南) += -dist*cos(bearing)
+  // 座標計算: calcBearing の逆変換（X=北, Y=東、方位角は時計回り）
   const rad = bearing * Math.PI / 180;
-  const cx = mx + dist * Math.sin(rad);
-  const cy = my - dist * Math.cos(rad);
+  const cx = mx + dist * Math.cos(rad);
+  const cy = my + dist * Math.sin(rad);
 
   const _r2 = document.getElementById('t2_right_' + id); if (_r2) _r2.textContent = fmtNum4(rightAngle);
   const _l2 = document.getElementById('t2_left_' + id); if (_l2) _l2.textContent = fmtNum4(leftAngle);
@@ -1885,7 +2173,7 @@ function t2AddRow(name = '', dist = '', deg = 0, min = 0, sec = 0, dir = 'R') {
     <td><input type="number" class="w-dms" id="t2_deg_${id}" value="${deg}" step="1" min="0" max="359" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
     <td><input type="number" class="w-dms" id="t2_min_${id}" value="${min}" step="1" min="0" max="59" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
     <td><input type="number" class="w-dms" id="t2_sec_${id}" value="${sec}" step="1" min="0" max="59" inputmode="numeric" onfocus="this.select()" oninput="t2RecalcAll()"></td>
-    <td><span class="dir-badge dir-${dir}" id="t2_dir_${id}" data-dir="${dir}" onclick="t2ToggleDir(${id})">${dir}</span></td>
+    <td><span class="dir-badge dir-${dir}" id="t2_dir_${id}" data-dir="${dir}" onclick="t2ToggleDir(${id})">${dirLabel(dir)}</span></td>
     <td class="calc-hi" id="t2_cx_${id}">—</td>
     <td class="calc-hi" id="t2_cy_${id}">—</td>
     <td><button class="btn btn-danger" onclick="t2DeleteRow(${id})">✕</button></td>
@@ -1905,7 +2193,7 @@ function t2ToggleDir(id) {
   const el = document.getElementById('t2_dir_' + id);
   const nxt = el.dataset.dir === 'R' ? 'L' : 'R';
   el.dataset.dir = nxt;
-  el.textContent = nxt;
+  el.textContent = dirLabel(nxt);
   el.className = 'dir-badge dir-' + nxt;
   t2RecalcAll();
 }
@@ -1946,7 +2234,7 @@ function t2ExportCSV() {
   t2Rows.forEach(row => {
     const name = getNameVal(row.id, 't2');
     const get = id => { const el = document.getElementById(id + row.id); return el ? (el.value !== undefined ? el.value : el.textContent) : ''; };
-    const dir = document.getElementById('t2_dir_' + row.id)?.dataset.dir || '';
+    const dir = dirLabel(document.getElementById('t2_dir_' + row.id)?.dataset.dir || 'R');
     csv += [name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
             get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')].join(',') + '\n';
   });
@@ -1959,7 +2247,7 @@ function t2ExportExcel() {
   t2Rows.forEach(row => {
     const name = getNameVal(row.id, 't2');
     const get = id => { const el = document.getElementById(id + row.id); return el ? (el.value !== undefined ? el.value : el.textContent) : ''; };
-    const dir = document.getElementById('t2_dir_' + row.id)?.dataset.dir || '';
+    const dir = dirLabel(document.getElementById('t2_dir_' + row.id)?.dataset.dir || 'R');
     rows.push([name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
                get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')]);
   });
@@ -2204,7 +2492,7 @@ function collectData() {
       dir:  document.getElementById('t2_dir_'+r.id)?.dataset.dir || 'R',
     }))
   };
-  return { t1, t2, savedAt: Date.now() };
+  return { t1, t2, plan: plCollect(), savedAt: Date.now() };
 }
 
 /* IndexedDBに保存 */
@@ -2293,6 +2581,7 @@ function restoreData(data) {
 
   t1RecalcAll();
   t2RecalcAll();
+  plOnRestore(data && data.plan);
 }
 
 /* 現場切り替え */
@@ -2333,12 +2622,14 @@ async function siteDelete(id, e) {
   if (!site || !confirm('「' + site.name + '」を削除しますか？\n元に戻せません。')) return;
   await saveSiteIndex(list.filter(s => s.id !== id));
   await dbDel(siteDataKey(id));
+  await plIdbDel('plan_' + id);
   if (_currentSiteId === id) {
     await setCurrentSiteId(null);
     document.getElementById('header-site-name').textContent = '現場未選択';
     t1Rows=[]; t1RowId=0; document.getElementById('t1_tbody').innerHTML='';
     t2Rows=[]; t2RowId=0; document.getElementById('t2_tbody').innerHTML='';
     t1RecalcAll(); t2RecalcAll();
+    plOnRestore(null);
   }
   await renderSiteList();
 }
@@ -2428,6 +2719,1889 @@ window.addEventListener('pageshow', (e) => {
     saveCurrentSite();
   }
 });
+// =====================================================
+// 図面(PDF/画像)連携 ＋ 座標の自動読取  (PL = Plan)
+//  ・PDFの文字情報 / スクショ画像(OCR) → 座標を表に取り込み
+//  ・図面PDFを現場ごとに保存、機械点(赤)・視準点(青)・選択測点(緑)を図面に表示
+//  ・図面上のタップで機械点/視準点/測点を選択 → 距離・角度を図面に表示
+// =====================================================
+const PL = {
+  stored: null,          // {kind:'pdf'|'img', name, mime, bytes:ArrayBuffer}  現場に保存されている図面
+  loadedFor: null, kind: null, name: '',
+  pdfDoc: null, imgEl: null, numPages: 1, page: 1,
+  pgW: 0, pgH: 0, k: 1, base: null,       // pg座標 = PDFのpt(画像ならpx)。base = 描画済みキャンバス
+  calib: {},             // {'1':[{name,X,Y,u,v}]}  ページ別の位置合わせ点
+  yUp: true,             // 図面の上方向がY+ か
+  T: null,               // 座標→図面 変換
+  selId: null, free: null,
+  mode: 'target', names: true,
+  V: { s: 1, tx: 0, ty: 0 }, fitS: 1, cw: 0, ch: 0, dpr: 1,
+  ocr: null, fitMode: 'auto', hi: null,
+  ranges: [], rect: null, rangeTool: 'draw', _fromRange: false
+};
+const PL_PDFJS        = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js';
+const PL_PDFJS_WORKER = 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+const PL_TESS         = 'https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js';
+
+function plEl(id) { return document.getElementById(id); }
+function plEsc(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+/* ---------- 外部ライブラリ(使うときだけ読込) ---------- */
+const _plLibP = {};
+function plLoadScript(src) {
+  if (_plLibP[src]) return _plLibP[src];
+  _plLibP[src] = new Promise((res, rej) => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => res();
+    s.onerror = () => { delete _plLibP[src]; rej(new Error('読取ライブラリを読み込めません。通信状況を確認してください。')); };
+    document.head.appendChild(s);
+  });
+  return _plLibP[src];
+}
+async function plEnsurePdfJs() {
+  await plLoadScript(PL_PDFJS);
+  if (!window.pdfjsLib) throw new Error('PDFライブラリの初期化に失敗しました');
+  window.pdfjsLib.GlobalWorkerOptions.workerSrc = PL_PDFJS_WORKER;
+  return window.pdfjsLib;
+}
+async function plEnsureTess() {
+  await plLoadScript(PL_TESS);
+  if (!window.Tesseract) throw new Error('OCRライブラリの初期化に失敗しました');
+  return window.Tesseract;
+}
+
+/* ---------- 小さなUI部品 ---------- */
+let _plToastT = null;
+function plToast(msg, ms) {
+  const el = plEl('pl-toast'); if (!el) return;
+  el.textContent = msg; el.classList.add('show');
+  clearTimeout(_plToastT);
+  _plToastT = setTimeout(() => el.classList.remove('show'), ms || 2400);
+}
+function plBusy(msg) { plEl('pl_busy_msg').textContent = msg; plEl('pl-busy').classList.add('show'); }
+function plBusyOff() { plEl('pl-busy').classList.remove('show'); }
+
+/* ---------- IndexedDB（図面データ。既存の kv ストアを利用） ---------- */
+async function plIdbPut(key, val) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const tx = db.transaction(DB_STORE, 'readwrite');
+    tx.objectStore(DB_STORE).put(val, key);
+    tx.oncomplete = () => res();
+    tx.onerror = e => rej(e.target.error);
+  });
+}
+async function plIdbGet(key) {
+  const db = await openDB();
+  return new Promise((res, rej) => {
+    const req = db.transaction(DB_STORE, 'readonly').objectStore(DB_STORE).get(key);
+    req.onsuccess = () => res(req.result);
+    req.onerror = e => rej(e.target.error);
+  });
+}
+async function plIdbDel(key) {
+  try {
+    const db = await openDB();
+    await new Promise((res, rej) => {
+      const tx = db.transaction(DB_STORE, 'readwrite');
+      tx.objectStore(DB_STORE).delete(key);
+      tx.oncomplete = () => res(); tx.onerror = e => rej(e.target.error);
+    });
+  } catch (e) {}
+}
+
+/* =====================================================
+   1. 座標テキストの解析（PDFの文字情報・OCR結果 共通）
+   ===================================================== */
+function plNormLine(s) {
+  return String(s)
+    .replace(/[０-９Ａ-Ｚａ-ｚ]/g, c => String.fromCharCode(c.charCodeAt(0) - 0xFEE0))
+    .replace(/．/g, '.').replace(/[，、]/g, ',').replace(/[－−–—]/g, '-')
+    .replace(/＋/g, '+').replace(/：/g, ':').replace(/＝/g, '=')
+    .replace(/[\u3000\t]/g, ' ')
+    .replace(/[|｜¦│┃]/g, ' ')                       // 表の罫線をOCRが拾った文字
+    .replace(/(\d)\s*\.\s+(\d)/g, '$1.$2')           // 「64338. 353」のように小数点の後ろが空く書体
+    .replace(/(\d)\s+\.(\d)/g, '$1.$2');
+}
+const PL_NUM = /^[+-]?\d+(?:\.\d+)?$/;
+/** 数値トークン判定。OCRの典型的な誤読(O→0, l→1 等)は補正して fixed=true を返す */
+function plFixNumTok(t) {
+  if (PL_NUM.test(t)) return { v: t, fixed: false };
+  if (!/\d/.test(t)) return null;
+  const u = t.replace(/[Oo]/g, '0').replace(/[Il|]/g, '1').replace(/S/g, '5').replace(/B/g, '8').replace(/,/g, '.');
+  if (PL_NUM.test(u)) return { v: u, fixed: true };
+  return null;
+}
+/** OCR時のみ: 英字+数字の測点名で、数字がl/I/O等に誤読された場合を補正（例: Pl→P1, K1O→K10） */
+function plFixOcrName(name) {
+  const m = name.match(/^([A-Za-z]{1,3})([0-9OolI|]+)$/);
+  if (!m || /^\d+$/.test(m[2])) return null;
+  const fixed = m[1] + m[2].replace(/[Oo]/g, '0').replace(/[lI|]/g, '1');
+  return fixed === name ? null : fixed;
+}
+/** 1行 → {name,x,y,fixed,suspect} / 解析不能なら null  （末尾の2数値をX,Y、その前を測点名とみなす） */
+function plParseLine(raw, ocr) {
+  let s = plNormLine(raw);
+  // 12,345.678 のような桁区切りカンマを除去（CSVの「K1,12345.678」は壊さない）
+  s = s.replace(/(^|[^\w.])(\d{1,3}(?:,\d{3})+)(?=\.\d)/g, (m, p, n) => p + n.replace(/,/g, ''));
+  s = s.replace(/(^|[^A-Za-z0-9])[XxYy]\s*[:=]\s*/g, '$1 ');       // "X=" "Y:" を除去
+  s = s.replace(/[()\[\]{}]/g, ' ');
+  const t = s.split(/[\s,;]+/).filter(x => x && !/^[lI!¦_~.:'`"]+$/.test(x));
+  if (t.length < 2) return null;
+  const ty = plFixNumTok(t[t.length - 1]);
+  const tx = plFixNumTok(t[t.length - 2]);
+  if (!tx || !ty) return null;
+  const nameToks = t.slice(0, -2);
+  const name = nameToks.join(' ').replace(/[:]+$/, '').trim();
+  if (name.length > 16) return null;                                  // 説明文などは除外
+  const suspect = nameToks.some(tok => PL_NUM.test(tok));
+  let nm = name, nameFixed = false;
+  if (ocr) { const f = plFixOcrName(name); if (f) { nm = f; nameFixed = true; } }
+  return { name: nm, x: tx.v, y: ty.v, fixed: tx.fixed || ty.fixed || nameFixed, suspect };
+}
+function plParseLines(lines, ocr) {
+  const out = [], seen = {};
+  lines.forEach(l => {
+    const r = plParseLine(l, ocr);
+    if (!r) return;
+    if (r.name) { if (seen[r.name]) r.dup = true; seen[r.name] = true; }
+    out.push(r);
+  });
+  return out;
+}
+
+/** 文字片 {s,x,y,h}（yは上向き）を「行」に再構成（y位置でグループ化→x順に連結） */
+function plItemsToLines(items) {
+  items.sort((a, b) => (b.y - a.y) || (a.x - b.x));
+  let cur = null;
+  const groups = [];
+  items.forEach(it => {
+    if (cur && Math.abs(cur.y - it.y) <= Math.max(2, it.h * 0.45)) cur.items.push(it);
+    else { cur = { y: it.y, items: [it] }; groups.push(cur); }
+  });
+  return groups.map(g => {
+    g.items.sort((a, b) => a.x - b.x);
+    let out = '', prev = null;
+    g.items.forEach(it => {      // 隙間が小さい文字片は連結（1文字ずつ分割されたPDF対策）、大きければ空白
+      const gap = prev ? it.x - (prev.x + (prev.w || 0)) : 0;
+      out += (prev && gap > Math.max(1, (it.h || 10) * 0.3) ? ' ' : '') + it.s.trim();
+      prev = it;
+    });
+    return out;
+  });
+}
+
+/* ---------- OCR（画像→テキスト） ---------- */
+/** OCR前処理: 拡大・グレースケール・白黒反転(黒背景のCAD画面対策)・コントラスト伸長 */
+function plPrepForOcr(src, w, h) {
+  let scale = 1;
+  if (w < 1400) scale = Math.min(3, 1400 / w);
+  if (w * scale > 2400) scale = 2400 / w;
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w * scale)); c.height = Math.max(1, Math.round(h * scale));
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.imageSmoothingQuality = 'high';
+  g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(src, 0, 0, c.width, c.height);
+  const id = g.getImageData(0, 0, c.width, c.height), d = id.data, n = c.width * c.height;
+  const gray = new Uint8Array(n); let sum = 0;
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) {
+    const y = 0.299 * d[i] + 0.587 * d[i + 1] + 0.114 * d[i + 2];
+    gray[p] = y; sum += y;
+  }
+  const inv = (sum / n) < 128;
+  const hist = new Uint32Array(256);
+  for (let p = 0; p < n; p++) { if (inv) gray[p] = 255 - gray[p]; hist[gray[p]]++; }
+  let acc = 0, lo = 0, hi = 255;
+  for (let v = 0; v < 256; v++) { acc += hist[v]; if (acc >= n * 0.01) { lo = v; break; } }
+  acc = 0;
+  for (let v = 255; v >= 0; v--) { acc += hist[v]; if (acc >= n * 0.01) { hi = v; break; } }
+  const span = Math.max(1, hi - lo), stretch = (hi - lo) >= 30;
+  for (let p = 0; p < n; p++) {
+    let y = gray[p];
+    if (stretch) y = Math.max(0, Math.min(255, (y - lo) * 255 / span));
+    gray[p] = y;
+  }
+  const grid = plRemoveLines(gray, c.width, c.height);
+  // 細い線の書体（CAD図面）は文字として認識されにくいので、線の太さに応じて太らせる
+  const sw = plStrokeWidth(gray, c.width, c.height);
+  const passes = sw <= 1.5 ? 2 : (sw <= 3 ? 1 : 0);
+  for (let i = 0; i < passes; i++) plDilate(gray, c.width, c.height);
+  for (let i = 0, p = 0; i < d.length; i += 4, p++) { d[i] = d[i + 1] = d[i + 2] = gray[p]; d[i + 3] = 255; }
+  g.putImageData(id, 0, 0);
+  c._grid = grid;
+  return c;
+}
+/** 表の罫線（長い水平線・垂直線）を白く消し、罫線の位置（列境界vx・行境界hy）を返す */
+function plRemoveLines(a, w, h) {
+  const DARK = 170, LH = Math.max(60, Math.round(w * 0.04)), LV = Math.max(80, Math.round(h * 0.2));
+  const kill = new Uint8Array(w * h), hc = new Float32Array(h), vc = new Float32Array(w);
+  for (let y = 0; y < h; y++) {
+    let run = 0;
+    for (let x = 0; x <= w; x++) {
+      const dark = x < w && a[y * w + x] < DARK;
+      if (dark) run++;
+      else { if (run >= LH) { for (let k = x - run; k < x; k++) kill[y * w + k] = 1; hc[y] += run; } run = 0; }
+    }
+  }
+  for (let x = 0; x < w; x++) {
+    let run = 0;
+    for (let y = 0; y <= h; y++) {
+      const dark = y < h && a[y * w + x] < DARK;
+      if (dark) run++;
+      else { if (run >= LV) { for (let k = y - run; k < y; k++) kill[k * w + x] = 1; vc[x] += run; } run = 0; }
+    }
+  }
+  const cluster = (cnt, thr) => {
+    const out = []; let s = -1, last = -9;
+    for (let i = 0; i <= cnt.length; i++) {
+      const on = i < cnt.length && cnt[i] >= thr;
+      if (on) { if (s < 0) s = i; last = i; }
+      else if (s >= 0 && i - last > 3) { out.push(Math.round((s + last) / 2)); s = -1; }
+    }
+    return out;
+  };
+  const grid = { vx: cluster(vc, h * 0.3), hy: cluster(hc, w * 0.3) };
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x;
+    if (kill[p]) { a[p] = 255; continue; }
+    if (a[p] > 110 && a[p] < 235 && ((x > 0 && kill[p - 1]) || (x < w - 1 && kill[p + 1]) || (y > 0 && kill[p - w]) || (y < h - 1 && kill[p + w]))) a[p] = 255;
+  }
+  return grid;
+}
+/** 文字の筆画の太さ（px）の目安：短い暗い連続の中央値 */
+function plStrokeWidth(a, w, h) {
+  const runs = [];
+  for (let y = 0; y < h; y += 2) {
+    let run = 0;
+    for (let x = 0; x <= w; x++) {
+      const dark = x < w && a[y * w + x] < 128;
+      if (dark) run++; else { if (run > 0 && run <= 15) runs.push(run); run = 0; }
+    }
+  }
+  if (runs.length < 30) return 3;
+  runs.sort((p, q) => p - q);
+  return runs[Math.floor(runs.length / 2)];
+}
+/** 暗い画素を1px太らせる（3x3の最小値フィルタ） */
+function plDilate(a, w, h) {
+  const t = new Uint8Array(a.length);
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x; let m = a[p];
+    if (x > 0 && a[p - 1] < m) m = a[p - 1];
+    if (x < w - 1 && a[p + 1] < m) m = a[p + 1];
+    t[p] = m;
+  }
+  for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+    const p = y * w + x; let m = t[p];
+    if (y > 0 && t[p - w] < m) m = t[p - w];
+    if (y < h - 1 && t[p + w] < m) m = t[p + w];
+    a[p] = m;
+  }
+}
+const PL_WL_BLOCK = '0123456789.,-+:=()[]ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz_/ ';
+const PL_WL_NUM = '0123456789.-';
+const PL_WL_NAME = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789.-_';
+async function plOcrWorker() {
+  const T = await plEnsureTess();
+  if (!PL.ocr) {
+    plBusy('OCRエンジンを準備中…（初回のみ通信します）');
+    PL.ocr = await T.createWorker('eng', 1, {
+      logger: m => { if (m.status === 'recognizing text' && !PL._ocrQuiet) plBusy('文字を読み取り中… ' + Math.round((m.progress || 0) * 100) + '%'); }
+    });
+    PL._ocrKey = '';
+  }
+  return PL.ocr;
+}
+async function plOcrSet(wl, psm) {
+  const key = wl + '|' + psm;
+  if (PL._ocrKey === key) return;
+  await PL.ocr.setParameters({ tessedit_pageseg_mode: psm, preserve_interword_spaces: '1', tessedit_char_whitelist: wl });
+  PL._ocrKey = key;
+}
+async function plOcr(canvas) {
+  await plOcrWorker();
+  await plOcrSet(PL_WL_BLOCK, '6');
+  plBusy('文字を読み取り中…');
+  PL._ocrQuiet = false;
+  const r = await PL.ocr.recognize(canvas);
+  return r.data.text || '';
+}
+/** 罫線で区切られた表を、1マスずつ読む（列ごとに文字種を限定: 点名=大文字・数字、座標=数字のみ） */
+function plCleanNum(t) {
+  t = String(t).replace(/[^0-9.\-]/g, '');
+  const i = t.indexOf('.');
+  if (i >= 0) t = t.slice(0, i + 1) + t.slice(i + 1).replace(/\./g, '');
+  t = t.replace(/(?!^)-/g, '');
+  return PL_NUM.test(t) ? t : null;
+}
+function plCleanName(t) {
+  t = String(t).replace(/[^A-Za-z0-9.\-_]/g, '').toUpperCase();
+  const m = t.match(/^([A-Z]{1,3})([0-9OI]+)$/);
+  if (m && /[OI]/.test(m[2])) return { name: m[1] + m[2].replace(/O/g, '0').replace(/I/g, '1'), changed: true };
+  if (/^[A-Z]{2,4}$/.test(t) && /[LIO]$/.test(t)) return { name: t.slice(0, -1) + (t.slice(-1) === 'O' ? '0' : '1'), changed: true };   // 例: KCL→KC1
+  return { name: t, changed: false };
+}
+async function plOcrTable(c) {
+  const gd = c._grid || { vx: [], hy: [] }, W = c.width, H = c.height;
+  if (gd.hy.length < 3 || gd.vx.length < 1) return null;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  const px = g.getImageData(0, 0, W, H).data;
+  const ink = (x0, y0, x1, y1) => { let n = 0; for (let y = y0; y < y1; y += 1) for (let x = x0; x < x1; x += 1) if (px[(y * W + x) * 4] < 128) n++; return n; };
+  const xs = [0].concat(gd.vx, [W]).sort((p, q) => p - q), ys = [0].concat(gd.hy, [H]).sort((p, q) => p - q);
+  const cols = [], rows = [];
+  for (let i = 0; i + 1 < xs.length; i++) {
+    const x0 = xs[i] + 4, x1 = xs[i + 1] - 3;
+    if (x1 - x0 >= W * 0.04 && ink(x0, 0, x1, H) >= 30) cols.push({ x0, x1 });
+  }
+  for (let j = 0; j + 1 < ys.length; j++) {
+    const y0 = ys[j] + 3, y1 = ys[j + 1] - 2;
+    if (y1 - y0 >= 14 && ink(0, y0, W, y1) >= 12) rows.push({ y0, y1 });
+  }
+  if (cols.length < 2 || rows.length < 3) return null;
+  const cellCanvas = (cl, rw, extra) => {
+    const w = cl.x1 - cl.x0, h = rw.y1 - rw.y0, sc = (h < 48 ? Math.min(3, 48 / h) : 1) * (extra || 1), pad = 12;
+    const cv = document.createElement('canvas');
+    cv.width = Math.round(w * sc) + pad * 2; cv.height = Math.round(h * sc) + pad * 2;
+    const cg = cv.getContext('2d'); cg.fillStyle = '#fff'; cg.fillRect(0, 0, cv.width, cv.height);
+    cg.imageSmoothingQuality = 'high'; cg.drawImage(c, cl.x0, rw.y0, w, h, pad, pad, Math.round(w * sc), Math.round(h * sc));
+    return cv;
+  };
+  await plOcrWorker();
+  PL._ocrQuiet = true;
+  const cells = cols.map(() => []), unsure = cols.map(() => []);
+  const total = cols.length * rows.length * 1.25; let done = 0;
+  for (let ci = 0; ci < cols.length; ci++) {
+    const wl = ci === 0 ? PL_WL_NAME : PL_WL_NUM, conf = [];
+    await plOcrSet(wl, '7');                                   // 1回目: 1行として読む
+    for (let ri = 0; ri < rows.length; ri++) {
+      plBusy('表を1マスずつ読み取り中… ' + Math.min(99, Math.round(100 * (++done) / total)) + '%');
+      const r = await PL.ocr.recognize(cellCanvas(cols[ci], rows[ri]));
+      cells[ci][ri] = (r.data.text || '').trim(); conf[ri] = r.data.confidence || 0; unsure[ci][ri] = false;
+    }
+    const redo = [];                                           // 自信のないマスは、拡大して読み直し（照合用）
+    conf.forEach((cf, ri) => { if (cf < 85 || !cells[ci][ri]) redo.push(ri); });
+    for (const ri of redo) {
+      plBusy('自信のないマスを再確認中… ' + Math.min(99, Math.round(100 * (++done) / total)) + '%');
+      const r2 = await PL.ocr.recognize(cellCanvas(cols[ci], rows[ri], 1.5));
+      const t2 = (r2.data.text || '').trim().replace(/\s/g, ''), t1 = (cells[ci][ri] || '').replace(/\s/g, '');
+      if (t2 !== t1) {
+        unsure[ci][ri] = true;                                 // 2回の読みが食い違う → 要確認（採用は1回目を優先）
+        const ok = ci === 0 ? /^[A-Z]{1,3}\d+$/.test(t1) : PL_NUM.test(t1);
+        if (!ok) cells[ci][ri] = t2;                           // 1回目が使えない形のときだけ2回目を採用
+      }
+    }
+  }
+  PL._ocrQuiet = false;
+  // 先頭列が座標値(数値)なら「点名なし」の表
+  const numLike = cells[0].filter(t => /^-?\d+\.\d+$/.test(t.replace(/\s/g, ''))).length;
+  const noName = numLike >= cells[0].filter(t => t).length * 0.6 && numLike >= 3;
+  const s = noName ? 0 : 1;
+  if (cols.length < s + 2) return null;
+  const out = [];
+  for (let ri = 0; ri < rows.length; ri++) {
+    const x = plCleanNum(cells[s][ri]), y = plCleanNum(cells[s + 1][ri]);
+    if (!x || !y || x.indexOf('.') < 0 || y.indexOf('.') < 0) continue;
+    const nm = noName ? { name: '', changed: false } : plCleanName(cells[0][ri]);
+    const uns = unsure.slice(0, s + 2).some(u => u[ri]);
+    out.push({ name: nm.name, x, y, fixed: nm.changed, suspect: uns, raw: cells.map(cc => cc[ri]).join(' | ') });
+  }
+  return out;
+}
+
+/* ---------- 値の妥当性チェックによる補正（OCRの誤読対策） ---------- */
+function plNumShape(s) { const m = /^(-?)(\d+)(?:\.(\d+))?$/.exec(s); return m ? { neg: !!m[1], i: m[2].length, d: (m[3] || '').length } : null; }
+function plModeOf(arr) { const cnt = {}; let best = null, bc = 0; arr.forEach(v => { cnt[v] = (cnt[v] || 0) + 1; if (cnt[v] > bc) { bc = cnt[v]; best = v; } }); return best; }
+const PL_CONF = { '0': '68', '6': '05', '8': '036', '3': '8', '5': '6', '1': '7', '7': '1', '9': '48', '4': '9', '2': '7' };
+/** 同じ列の値は桁数・大きさが揃っているはず。外れた値は、桁の余りを削る／紛らわしい数字を置換して中央値に最も近い値に直す */
+function plRepairColumn(vals) {
+  const shapes = vals.map(plNumShape);
+  const out = vals.map(v => ({ v, changed: false, bad: false, orig: null }));
+  const valid = shapes.map((s, i) => s ? i : -1).filter(i => i >= 0);
+  if (valid.length < 6) return out;                    // 行数が少ない表は誤補正を避けるため対象外
+  const mI = plModeOf(valid.map(i => shapes[i].i)), mD = plModeOf(valid.map(i => shapes[i].d));
+  const conf = valid.filter(i => shapes[i].i === mI && shapes[i].d === mD);
+  if (conf.length < 4 || conf.length < valid.length * 0.7) return out;
+  const nums = conf.map(i => parseFloat(vals[i])).sort((p, q) => p - q);
+  const med = nums[Math.floor(nums.length / 2)];
+  const dev = nums.map(v => Math.abs(v - med)).sort((p, q) => p - q);
+  const mad = dev[Math.floor(dev.length / 2)];              // 外れ値に強いばらつきの指標
+  const tol = Math.max(mad * 8, 200);
+  vals.forEach((s, i) => {
+    const sh = shapes[i]; if (!sh) return;
+    const okShape = sh.i === mI && sh.d === mD, inRange = Math.abs(parseFloat(s) - med) <= tol;
+    if (okShape && inRange) return;
+    const bases = [s];
+    if (sh.i > mI) {                                   // 先頭に余分な桁（例: 064323.062）
+      const ip = s.replace('-', '').split('.')[0], dp = s.indexOf('.') >= 0 ? '.' + s.split('.')[1] : '';
+      bases.push((sh.neg ? '-' : '') + ip.slice(ip.length - mI) + dp);
+    }
+    let best = null, bd = Infinity;
+    bases.forEach(b => {
+      const bs = plNumShape(b); if (!bs || bs.i !== mI || bs.d !== mD) return;
+      const d0 = Math.abs(parseFloat(b) - med); if (d0 < bd) { bd = d0; best = b; }
+      if (d0 <= tol) return;                              // 桁を整えただけで範囲内に入るなら、数字の置換はしない
+      for (let p = 0; p < b.length; p++) {
+        const alts = PL_CONF[b[p]]; if (!alts) continue;
+        for (const a of alts) { const cand = b.slice(0, p) + a + b.slice(p + 1), dd = Math.abs(parseFloat(cand) - med); if (dd < bd) { bd = dd; best = cand; } }
+      }
+    });
+    if (best !== null && best !== s && bd <= tol) out[i] = { v: best, changed: true, bad: false, orig: s };
+    else out[i].bad = true;                            // 補正できない（桁落ちなど）→ 要確認
+  });
+  return out;
+}
+function plRepairRows(rows) {
+  if (rows.length < 4) return rows;
+  const rx = plRepairColumn(rows.map(r => r.x)), ry = plRepairColumn(rows.map(r => r.y));
+  rows.forEach((r, i) => {
+    if (rx[i].changed) { r.origX = rx[i].orig; r.x = rx[i].v; r.fixed = true; }
+    if (ry[i].changed) { r.origY = ry[i].orig; r.y = ry[i].v; r.fixed = true; }
+    if (rx[i].bad || ry[i].bad) r.suspect = true;
+  });
+  return rows;
+}
+async function plRenderPdfPageCanvas(doc, n, longSide) {
+  const page = await doc.getPage(n);
+  const v1 = page.getViewport({ scale: 1 });
+  const vp = page.getViewport({ scale: longSide / Math.max(v1.width, v1.height) });
+  const c = document.createElement('canvas');
+  c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  await page.render({ canvasContext: g, viewport: vp }).promise;
+  return c;
+}
+function plLoadImage(bytes, mime) {
+  return new Promise((res, rej) => {
+    const url = URL.createObjectURL(new Blob([bytes], { type: mime || 'image/png' }));
+    const im = new Image();
+    im.onload = () => res(im);
+    im.onerror = () => rej(new Error('画像を読み込めません'));
+    im.src = url;
+  });
+}
+
+/* =====================================================
+   1b. 範囲指定による座標読取（図面を開く → 範囲指定 → 登録 → 座標変換開始）
+   ===================================================== */
+function plReadCoordsFromPlan() {
+  if (!PL.stored) { plToast('先に「図面PDF/画像を登録」してください'); return; }
+  return plOpenViewer('range');
+}
+function plToPg(sx, sy) { return { u: (sx - PL.V.tx) / PL.V.s, v: (sy - PL.V.ty) / PL.V.s }; }
+function plNormRect(r) {
+  return { u0: Math.max(0, Math.min(r.u0, r.u1)), v0: Math.max(0, Math.min(r.v0, r.v1)),
+           u1: Math.min(PL.pgW, Math.max(r.u0, r.u1)), v1: Math.min(PL.pgH, Math.max(r.v0, r.v1)) };
+}
+function plRangeToolSet(t) {
+  PL.rangeTool = t;
+  plEl('pl_rt_draw').classList.toggle('on', t === 'draw');
+  plEl('pl_rt_pan').classList.toggle('on', t === 'pan');
+}
+function plRangeRefresh() {
+  const n = PL.ranges.length;
+  plEl('pl_range_list').innerHTML = n
+    ? PL.ranges.map((r, i) => '<div class="pl-cal-row"><span>▭ 範囲' + (i + 1) + (PL.numPages > 1 ? '（' + r.page + 'ページ）' : '') + '</span><button onclick="plRangeDel(' + i + ')">削除</button></div>').join('')
+    : '<div style="color:#8a6d1d">まだ範囲が登録されていません</div>';
+  plEl('pl_range_msg').textContent = n ? '登録済み ' + n + ' 件' : '';
+  plUpdateInfo();
+}
+function plRangeAdd(quiet) {
+  if (!PL.rect) { if (!quiet) plToast('先に図面上を指でなぞって範囲を指定してください'); return false; }
+  const r = plNormRect(PL.rect);
+  if ((r.u1 - r.u0) * PL.V.s < 14 || (r.v1 - r.v0) * PL.V.s < 8) { if (!quiet) plToast('範囲が小さすぎます。もう一度指定してください'); PL.rect = null; plDraw(); return false; }
+  PL.ranges.push({ page: PL.page, u0: r.u0, v0: r.v0, u1: r.u1, v1: r.v1 });
+  PL.rect = null;
+  plRangeRefresh(); plDraw();
+  if (!quiet) plToast('範囲' + PL.ranges.length + ' を登録しました。続けて別の範囲も登録できます', 2800);
+  return true;
+}
+function plRangeDel(i) { PL.ranges.splice(i, 1); plRangeRefresh(); plDraw(); }
+async function plRangeCrop(rg) {
+  const w = rg.u1 - rg.u0, h = rg.v1 - rg.v0;
+  if (PL.kind === 'pdf') {
+    const page = await PL.pdfDoc.getPage(rg.page);
+    let k = Math.min(8, 2400 / Math.max(w, h), Math.sqrt(12e6 / (w * h)));
+    k = Math.max(k, 0.5);
+    const c = document.createElement('canvas');
+    c.width = Math.max(1, Math.ceil(w * k)); c.height = Math.max(1, Math.ceil(h * k));
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: page.getViewport({ scale: k }), transform: [1, 0, 0, 1, -rg.u0 * k, -rg.v0 * k] }).promise;
+    return c;
+  }
+  const c = document.createElement('canvas');
+  c.width = Math.max(1, Math.round(w)); c.height = Math.max(1, Math.round(h));
+  const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(PL.imgEl, rg.u0, rg.v0, w, h, 0, 0, c.width, c.height);
+  return c;
+}
+/** 1つの範囲から座標を抽出。PDFの文字情報があればそれを優先し、無ければOCR */
+async function plExtractRange(rg) {
+  if (PL.kind === 'pdf') {
+    const page = await PL.pdfDoc.getPage(rg.page);
+    const vp = page.getViewport({ scale: 1 });
+    const tc = await page.getTextContent();
+    const items = [];
+    tc.items.forEach(it => {
+      if (!it.str || !it.str.trim()) return;
+      const pt = vp.convertToViewportPoint(it.transform[4], it.transform[5]);
+      const h = Math.abs(it.transform[3]) || it.height || 10, w = it.width || 0;
+      const cx = pt[0] + w / 2, cy = pt[1] - h * 0.3;
+      if (cx >= rg.u0 && cx <= rg.u1 && cy >= rg.v0 && cy <= rg.v1) items.push({ s: it.str, x: pt[0], y: -pt[1], h, w });
+    });
+    const lines = plItemsToLines(items);
+    const rows = plParseLines(lines);
+    if (rows.length) return { rows, how: '文字データ', thumb: null, raw: lines };
+    PL._rawText = lines;
+  }
+  const c = await plRangeCrop(rg);
+  const prep = plPrepForOcr(c, c.width, c.height);
+  let rows = await plOcrTable(prep), how = 'OCR(マス目読取)', tl = [];
+  if (rows && rows.length) tl = rows.map(r => r.raw);
+  else {
+    const text = await plOcr(prep);
+    tl = text.split('\n').filter(l => l.trim());
+    rows = plParseLines(tl, true); how = 'OCR';
+  }
+  plRepairRows(rows);
+  return { rows, how, thumb: prep, raw: tl };
+}
+/** 「座標変換開始」: 登録した全範囲を読み取り → 確認画面 → 表に反映 */
+async function plRangeConvert() {
+  if (PL.rect) plRangeAdd(true);                     // 指定したまま登録を忘れた範囲も含める
+  if (!PL.ranges.length) { plToast('先に範囲を指定して「この範囲を登録」を押してください'); return; }
+  try {
+    const all = [], thumbs = [], notes = [], raws = [];
+    PL._rawText = [];
+    for (let i = 0; i < PL.ranges.length; i++) {
+      plBusy('範囲' + (i + 1) + ' / ' + PL.ranges.length + ' を読み取り中…');
+      const r = await plExtractRange(PL.ranges[i]);
+      notes.push('範囲' + (i + 1) + '：' + r.how + 'で' + r.rows.length + '行');
+      all.push(...r.rows);
+      if (r.thumb) thumbs.push(r.thumb);
+      raws.push(...(r.raw || []));
+    }
+    plBusyOff();
+    if (!all.length) {
+      alert('座標（「ポイント名 X Y」の並び）を読み取れませんでした。\n\n【読み取れた文字（先頭）】\n' + (raws.slice(0, 8).map(l => l.slice(0, 50)).join('\n') || '（文字が検出されませんでした）') + '\n\n・座標の表の部分だけを、少し余白を付けて範囲指定してください。\n・文字が小さい場合は、拡大してから範囲指定してください。');
+      return;
+    }
+    const seen = {};
+    all.forEach(r => { r.dup = false; if (r.name) { if (seen[r.name]) r.dup = true; seen[r.name] = true; } });
+    const anyOcr = thumbs.length > 0;
+    PL._fromRange = true;
+    plReviewOpen(all, notes.join(' ／ ') + (anyOcr ? '　※OCRの範囲は読み違いの可能性があります。元の図面と見比べて確認してください。' : '　（文字データなので誤読はありません）'), thumbs);
+  } catch (e) {
+    plBusyOff();
+    alert('読み取りに失敗しました。\n' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ---------- 確認画面 ---------- */
+let _plRv = null;
+function plReviewOpen(rows, note, thumb) {
+  _plRv = { rows: rows.map(r => Object.assign({}, r, { chk: r.name !== '' })) };
+  plRvFlagDecimals(_plRv.rows);
+  plEl('pl_rv_note').textContent = note;
+  const box = plEl('pl_rv_img'); box.innerHTML = '';
+  const th = !thumb ? [] : (Array.isArray(thumb) ? thumb : [thumb]);
+  th.forEach(t => box.appendChild(t));
+  box.style.display = th.length ? '' : 'none';
+  plRvRender();
+  plEl('pl-review').classList.add('open');
+}
+/** 読取結果で、小数桁数が他の行と違う行（数字の読み落とし疑い）に印を付ける */
+function plRvFlagDecimals(rows) {
+  rows.forEach(r => { r.odd = ''; });
+  if (rows.length < 4) return;
+  ['x', 'y'].forEach(ax => {
+    const lens = rows.map(r => plDecLen(r[ax])), valid = lens.filter(l => l >= 0);
+    if (valid.length < 4) return;
+    const cnt = {}; valid.forEach(l => cnt[l] = (cnt[l] || 0) + 1);
+    let mode = valid[0]; Object.keys(cnt).forEach(k => { if (cnt[k] > cnt[mode]) mode = +k; });
+    if (cnt[mode] < valid.length * 0.7) return;
+    rows.forEach((r, i) => {
+      if (lens[i] >= 0 && lens[i] !== mode) r.odd += (r.odd ? ' ' : '') + ax.toUpperCase() + 'の小数が' + lens[i] + '桁（他は' + mode + '桁）→ 桁落ちの疑い';
+    });
+  });
+}
+function plRvRender() {
+  plEl('pl_rv_body').innerHTML = _plRv.rows.map((r, i) => {
+    const warn = r.fixed || r.suspect || r.dup || r.name === '' || r.odd;
+    const mark = r.odd ? ' ❗' : ((r.name === '' && !r.fixed && !r.suspect) ? '' : (r.fixed || r.suspect || r.dup ? ' ⚠' : ''));
+    return '<tr class="' + (r.odd ? 'pl-bad' : (warn ? 'pl-warn' : '')) + '">' +
+      '<td style="text-align:center"><input type="checkbox" ' + (r.chk ? 'checked' : '') + ' onchange="plRvEdit(' + i + ',\'chk\',this.checked)"></td>' +
+      '<td><input type="text" value="' + plEsc(r.name) + '" placeholder="(名前なし)" oninput="plRvEdit(' + i + ',\'name\',this.value)"></td>' +
+      '<td><input type="text" inputmode="text" value="' + plEsc(r.x) + '" oninput="plRvEdit(' + i + ',\'x\',this.value)" onchange="plRvEditDone()"></td>' +
+      '<td><input type="text" inputmode="text" value="' + plEsc(r.y) + '" oninput="plRvEdit(' + i + ',\'y\',this.value)" onchange="plRvEditDone()">' + mark +
+        (r.origX || r.origY ? '<div style="font-size:12px;color:#92400e;line-height:1.3">自動補正: ' + (r.origX ? 'X ' + plEsc(r.origX) + '→' + plEsc(r.x) + ' ' : '') + (r.origY ? 'Y ' + plEsc(r.origY) + '→' + plEsc(r.y) : '') + '</div>' : '') +
+        (r.odd ? '<div class="pl-rv-why">' + plEsc(r.odd) + '</div>' : '') +
+        '</td></tr>';
+  }).join('');
+  plRvCount();
+}
+function plRvEdit(i, k, v) { _plRv.rows[i][k] = v; if (k === 'chk') plRvCount(); }
+function plRvEditDone() { plRvFlagDecimals(_plRv.rows); plRvRender(); }
+function plRvAll(on) { _plRv.rows.forEach(r => r.chk = on); plRvRender(); }
+function plRvCount() {
+  const n = _plRv.rows.filter(r => r.chk).length;
+  plEl('pl_rv_count').textContent = n + ' / ' + _plRv.rows.length + ' 件を取り込み';
+}
+function plReviewClose() { plEl('pl-review').classList.remove('open'); _plRv = null; PL._fromRange = false; }
+function plAutoName() {
+  let n = t1Rows.length + 1;
+  const used = new Set(t1Rows.map(r => getNameVal(r.id, 't1')));
+  while (used.has('P' + n)) n++;
+  return 'P' + n;
+}
+function plReviewApply() {
+  if (!_plRv) return;
+  const fromRange = PL._fromRange;
+  const mode = plEl('pl_rv_mode').value;
+  const oddN = _plRv.rows.filter(r => r.chk && r.odd).length;
+  if (oddN && !confirm('小数の桁数が他と違う行（❗）が ' + oddN + ' 件あります。\n数字の読み落としの可能性があります。元の図面と見比べましたか？\n\nこのまま取り込みますか？')) return;
+  let add = 0, upd = 0, bad = 0;
+  _plRv.rows.forEach(r => {
+    if (!r.chk) return;
+    const x = String(r.x).trim(), y = String(r.y).trim();
+    if (!PL_NUM.test(x) || !PL_NUM.test(y)) { bad++; return; }
+    const name = r.name.trim() || plAutoName();
+    const ex = mode === 'update' ? t1Rows.find(t => getNameVal(t.id, 't1') === name) : null;
+    if (ex) {
+      plEl('t1_x_' + ex.id).value = x; plEl('t1_y_' + ex.id).value = y;
+      t1OnCoordChange(ex.id); upd++;
+    } else { t1AddRow(name, x, y); add++; }
+  });
+  if (bad) { alert('数値として読めない行が ' + bad + ' 件あります。X・Yを半角数字で修正してください。'); }
+  if (add + upd === 0) return;
+  plReviewClose();
+  autoSave();
+  PL._fromRange = false;
+  plToast(add + '件追加' + (upd ? '・' + upd + '件更新' : '') + 'しました');
+  if (fromRange && plViewerOpen()) {         // 範囲読取の後は、続けて位置合わせへ
+    PL.ranges = []; PL.rect = null; plRecalcT();
+    plSetMode(PL.T ? 'target' : 'calib', true);
+    plToast(add + '件追加' + (upd ? '・' + upd + '件更新' : '') + 'しました。' + (PL.T ? '' : '続けて位置合わせをしてください'), 3200);
+  }
+}
+
+/* =====================================================
+   2. 図面の登録・保存（現場ごと）
+   ===================================================== */
+function plPickPlan() { const el = plEl('pl_file_plan'); el.value = ''; el.click(); }
+async function plLoadRecord(rec) {
+  if (rec.kind === 'pdf') {
+    const lib = await plEnsurePdfJs();
+    const doc = await lib.getDocument({ data: new Uint8Array(rec.bytes.slice(0)) }).promise;   // sliceでコピー(転送で元データが空になるのを防ぐ)
+    PL.pdfDoc = doc; PL.numPages = doc.numPages; PL.imgEl = null;
+  } else {
+    PL.imgEl = await plLoadImage(rec.bytes, rec.mime); PL.numPages = 1; PL.pdfDoc = null;
+  }
+  PL.kind = rec.kind; PL.name = rec.name; PL.loadedFor = rec; PL.base = null;
+}
+async function plOnPlanFile(file) {
+  if (!file) return;
+  try {
+    const hasCal = Object.keys(PL.calib).some(k => (PL.calib[k] || []).length);
+    if (PL.stored && hasCal && !confirm('図面を差し替えると、現在の位置合わせ（図面と座標の対応）はリセットされます。よろしいですか？')) return;
+    plBusy('図面を読み込み中…');
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const rec = { kind: isPdf ? 'pdf' : 'img', name: file.name, mime: file.type || (isPdf ? 'application/pdf' : 'image/png'), bytes: await file.arrayBuffer() };
+    await plLoadRecord(rec);
+    PL.stored = rec; PL.calib = {}; PL.T = null; PL.page = 1; PL.ranges = []; PL.rect = null;
+    if (_currentSiteId) await plIdbPut('plan_' + _currentSiteId, rec);
+    plBusyOff();
+    autoSave(); plUpdateStatus();
+    plToast(_currentSiteId ? '図面を登録しました。「図面を表示」で位置合わせをしてください' : '現場が未選択のため、この図面は保存されません', 3200);
+  } catch (e) {
+    plBusyOff();
+    alert('図面を読み込めませんでした。\n' + (e && e.message ? e.message : e));
+  }
+}
+async function plRemovePlan() {
+  if (!PL.stored) return;
+  if (!confirm('登録した図面と位置合わせ情報を削除しますか？')) return;
+  if (_currentSiteId) await plIdbDel('plan_' + _currentSiteId);
+  PL.stored = null; PL.loadedFor = null; PL.pdfDoc = null; PL.imgEl = null; PL.base = null; PL.calib = {}; PL.T = null; PL.kind = null; PL.name = ''; PL.ranges = []; PL.rect = null;
+  autoSave(); plUpdateStatus();
+}
+var JWSNAP = [];
+function plCollect() { return { jw: { snap: JWSNAP }, calib: PL.calib, yUp: PL.yUp, page: PL.page, fitMode: PL.fitMode, gv: { calib: GV.calib, pts: GV.pts, page: GV.page, yUp: GV.yUp, useMain: GV.useMain } }; }
+function plOnRestore(meta) {
+  JWSNAP = (meta && meta.jw && meta.jw.snap) || [];
+  PL.calib = (meta && meta.calib) || {};
+  PL.yUp = meta && meta.yUp !== undefined ? !!meta.yUp : true;
+  PL.page = (meta && meta.page) || 1;
+  PL.fitMode = (meta && meta.fitMode) || 'auto'; PL.hi = null;
+  gvRestore(meta && meta.gv);
+  PL.selId = null; PL.free = null; PL.T = null; PL.ranges = []; PL.rect = null;
+  PL.stored = null; PL.loadedFor = null; PL.pdfDoc = null; PL.imgEl = null; PL.base = null; PL.kind = null; PL.name = '';
+  plUpdateStatus(); plUpdateSelInfo();
+  const sid = _currentSiteId;
+  if (sid) {
+    plIdbGet('plan_' + sid).then(rec => {
+      if (sid !== _currentSiteId || !rec) return;
+      PL.stored = rec; PL.kind = rec.kind; PL.name = rec.name;
+      plUpdateStatus(); gvStatus();
+    }).catch(() => {});
+  }
+}
+function plUpdateStatus() {
+  const el = plEl('pl_status'); if (!el) return;
+  if (!PL.stored) {
+    el.innerHTML = '図面は未登録です。<b>「図面PDF/画像を登録」</b>で現場ごとに保存できます。<br>登録後、<b>「座標読取（範囲指定）」</b>で図面内の座標表を範囲指定して表に自動入力できます。';
+    return;
+  }
+  const n = (PL.calib[String(PL.page)] || []).length;
+  const st = n >= 3 ? '位置合わせ済み（' + n + '点）' : n === 2 ? '位置合わせ済み（2点・3点目で確認推奨）' : '位置合わせ未実施（図面を表示→📐位置合わせ）';
+  el.innerHTML = '📄 <b>' + plEsc(PL.stored.name) + '</b>　' + (PL.numPages > 1 ? '（' + PL.numPages + 'ページ）　' : '') + st;
+}
+
+/* =====================================================
+   3. 測点の選択（計算点一覧）
+   ===================================================== */
+function plNameTap(id, el) {
+  if (PL.selId !== id) { plSelectRow(id); return; }          // 1回目: 選択
+  if (el.getAttribute('contenteditable') !== 'true') {       // 選択済みをもう一度: 名前を編集
+    el.setAttribute('contenteditable', 'true'); el.focus();
+    try { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
+  }
+}
+function plSelectRow(id, scroll) {
+  PL.selId = id || null;
+  if (id) PL.free = null;
+  document.querySelectorAll('#t1_tbody tr.pl-sel').forEach(tr => tr.classList.remove('pl-sel'));
+  if (id) {
+    const tr = plEl('t1_tr_' + id);
+    if (tr) { tr.classList.add('pl-sel'); if (scroll) tr.scrollIntoView({ block: 'center' }); }
+  }
+  plUpdateSelInfo();
+  if (plViewerOpen()) { plUpdateInfo(); plDraw(); }
+}
+function plClearSel() { PL.free = null; plSelectRow(null); }
+function plUpdateSelInfo() {
+  const el = plEl('pl_sel_info'); if (!el) return;
+  const nm = PL.selId ? getNameVal(PL.selId, 't1') : '';
+  el.innerHTML = nm
+    ? '🟢 選択中の測点：<b>' + plEsc(nm) + '</b>　<button class="btn btn-secondary" style="min-height:30px;padding:3px 10px;font-size:14px" onclick="plClearSel()">選択解除</button>'
+    : '計算点一覧の<b>測点名（または #）をタップ</b>すると選択され、図面に緑丸で表示されます。<br><span style="font-size:14px">※ 選択中の測点名をもう一度タップすると名前を編集できます</span>';
+}
+function plPoints() {
+  const out = [];
+  t1Rows.forEach(r => {
+    const name = getNameVal(r.id, 't1');
+    const x = parseFloat(plEl('t1_x_' + r.id)?.value), y = parseFloat(plEl('t1_y_' + r.id)?.value);
+    if (name && !isNaN(x) && !isNaN(y)) out.push({ id: r.id, name, x, y });
+  });
+  return out;
+}
+function plFindPointByName(name) { return plPoints().find(p => p.name === name) || null; }
+function plMechPt() { const m = t1GetMech(); return { name: plEl('t1_mech_name').value.trim(), x: m.x, y: m.y }; }
+function plVisPt()  { const v = t1GetVis();  return { name: plEl('t1_vis_name').value.trim(),  x: v.x, y: v.y }; }
+function plTarget() {
+  if (PL.selId) {
+    const nm = getNameVal(PL.selId, 't1');
+    const x = parseFloat(plEl('t1_x_' + PL.selId)?.value), y = parseFloat(plEl('t1_y_' + PL.selId)?.value);
+    if (!isNaN(x) && !isNaN(y)) return { name: nm, X: x, Y: y, rowId: PL.selId };
+  }
+  if (PL.free) return { name: PL.free.name || '任意点', X: PL.free.X, Y: PL.free.Y, rowId: null, free: true, snap: !!PL.free.snap };
+  return null;
+}
+/** 機械点→視準点を基準にした、機械点から測点への 距離・角度（表と同じ計算） */
+function plCalc(tgt) {
+  const m = t1GetMech(), v = t1GetVis();
+  const rv = calcBearing(m.x, m.y, v.x, v.y), r = calcBearing(m.x, m.y, tgt.X, tgt.Y);
+  if (r.dist === 0) return { dist: 0, none: true };
+  const right = (r.bearing - rv.bearing + 360) % 360;
+  const left = right === 0 ? 0 : 360 - right;
+  let dir = right <= 180 ? 'R' : 'L';
+  if (tgt.rowId) { const de = plEl('t1_dir_' + tgt.rowId); if (de && de.dataset.manual === 'true') dir = de.dataset.dir; }
+  const ang = dir === 'R' ? right : left;
+  return { dist: r.dist, right, left, dir, ang, dms: toDMS(ang) };
+}
+function dirLabel(d) { return d === 'R' ? '右' : '左'; }
+function plFmtDms(c) { return '機械を' + dirLabel(c.dir) + 'へ ' + c.dms.d + '°' + String(c.dms.m).padStart(2, '0') + '′' + String(c.dms.s).padStart(2, '0') + '″'; }
+
+/* =====================================================
+   4. 座標 ⇔ 図面 の変換（位置合わせ）
+      世界座標(X,Y) → 図面座標(u,v) ： 拡大縮小＋回転＋平行移動（2点以上、最小二乗）
+   ===================================================== */
+function plBaseApply(T, X, Y) {
+  const zx = X, zy = T.sg * Y;
+  if (T.af) return { u: T.af.a * zx + T.af.b * zy + T.af.e, v: T.af.c * zx + T.af.d * zy + T.af.f };
+  return { u: T.ar * zx - T.ai * zy + T.br, v: T.ar * zy + T.ai * zx + T.bi };
+}
+/** 位置合わせ。2点=相似変換 / 4点以上=縦横別縮尺も補正 / 3点以上=各点の残差を近傍へ配分（位置合わせ点では誤差0） */
+function plFit(pairs, yUp, mode) {
+  const n = pairs.length; if (n < 2) return null;
+  const sg = yUp ? -1 : 1;               // 図面はy下向きなので、Y上向きの座標は符号反転
+  let zx = 0, zy = 0, wx = 0, wy = 0;
+  pairs.forEach(p => { zx += p.X; zy += sg * p.Y; wx += p.u; wy += p.v; });
+  zx /= n; zy /= n; wx /= n; wy /= n;
+  let nr = 0, ni = 0, den = 0;
+  pairs.forEach(p => {
+    const dzx = p.X - zx, dzy = sg * p.Y - zy, dwx = p.u - wx, dwy = p.v - wy;
+    nr += dzx * dwx + dzy * dwy; ni += dzx * dwy - dzy * dwx; den += dzx * dzx + dzy * dzy;
+  });
+  if (den < 1e-12) return null;
+  const ar = nr / den, ai = ni / den;
+  const br = wx - (ar * zx - ai * zy), bi = wy - (ar * zy + ai * zx);
+  const T = { ar, ai, br, bi, sg, scale: Math.hypot(ar, ai) };
+  const rmsOf = TT => { let ss = 0; pairs.forEach(p => { const q = plBaseApply(TT, p.X, p.Y); ss += (q.u - p.u) * (q.u - p.u) + (q.v - p.v) * (q.v - p.v); }); return Math.sqrt(ss / n); };
+  let rms = rmsOf(T);
+  if (mode !== 'sim' && n >= 4) {
+    let sxx = 0, sxy = 0, syy = 0, sxu = 0, syu = 0, sxv = 0, syv = 0;
+    pairs.forEach(p => { const A = p.X - zx, B = sg * p.Y - zy, C = p.u - wx, D = p.v - wy; sxx += A * A; sxy += A * B; syy += B * B; sxu += A * C; syu += B * C; sxv += A * D; syv += B * D; });
+    const det = sxx * syy - sxy * sxy;
+    if (det > 1e-6 * sxx * syy) {
+      const a = (sxu * syy - syu * sxy) / det, b = (syu * sxx - sxu * sxy) / det, c = (sxv * syy - syv * sxy) / det, d = (syv * sxx - sxv * sxy) / det;
+      const af = { a, b, c, d, e: wx - a * zx - b * zy, f: wy - c * zx - d * zy };
+      const r2 = rmsOf({ sg, af });
+      if (r2 < rms * 0.6) { T.af = af; T.scale = Math.sqrt(Math.abs(a * d - b * c)); rms = r2; }
+    }
+  }
+  T.rms = rms / T.scale;                  // 世界座標の単位での誤差（補正前）
+  if (mode !== 'sim' && n >= 3) {
+    let spread = 0;
+    pairs.forEach(p => pairs.forEach(q => { spread = Math.max(spread, Math.hypot(p.X - q.X, p.Y - q.Y)); }));
+    T.res = pairs.map(p => { const q = plBaseApply(T, p.X, p.Y); return { X: p.X, Y: p.Y, du: p.u - q.u, dv: p.v - q.v }; });
+    T.w0 = 4 / Math.max(spread * spread, 1e-9);
+  }
+  return T;
+}
+function plApply(T, X, Y) {
+  const q = plBaseApply(T, X, Y), r = T.res;
+  if (!r || !r.length) return q;
+  let sw = 0, su = 0, sv = 0;
+  for (const k of r) {
+    const d2 = (X - k.X) * (X - k.X) + (Y - k.Y) * (Y - k.Y);
+    if (d2 < 1e-12) return { u: q.u + k.du, v: q.v + k.dv };
+    const w = 1 / d2; sw += w; su += w * k.du; sv += w * k.dv;
+  }
+  const f = sw / (sw + T.w0);
+  return { u: q.u + f * su / sw, v: q.v + f * sv / sw };
+}
+function plInvert(T, u, v) {
+  const lin = (du, dv) => {
+    if (T.af) { const a = T.af, det = a.a * a.d - a.b * a.c; return { zx: (a.d * du - a.b * dv) / det, zy: (a.a * dv - a.c * du) / det }; }
+    const d = T.ar * T.ar + T.ai * T.ai; return { zx: (du * T.ar + dv * T.ai) / d, zy: (dv * T.ar - du * T.ai) / d };
+  };
+  const o = T.af ? { x: T.af.e, y: T.af.f } : { x: T.br, y: T.bi };
+  const z = lin(u - o.x, v - o.y); let X = z.zx, Y = z.zy * T.sg;
+  if (T.res && T.res.length) for (let i = 0; i < 8; i++) { const q = plApply(T, X, Y), dz = lin(u - q.u, v - q.v); X += dz.zx; Y += dz.zy * T.sg; }
+  return { X, Y };
+}
+function plCalPairs() {
+  return (PL.calib[String(PL.page)] || []).map(c => {
+    const p = plFindPointByName(c.name);
+    return { name: c.name, X: p ? p.x : c.X, Y: p ? p.y : c.Y, u: c.u, v: c.v };
+  });
+}
+function plInsideCount(T) {
+  let n = 0;
+  plPoints().forEach(p => { const q = plApply(T, p.x, p.y); if (q.u >= 0 && q.u <= PL.pgW && q.v >= 0 && q.v <= PL.pgH) n++; });
+  return n;
+}
+function plSyncAxisUI() { const el = plEl('pl_cal_yup'); if (el) el.value = PL.yUp ? '1' : '0'; const f = plEl('pl_cal_fit'); if (f) f.value = PL.fitMode; }
+/** 位置合わせの再計算。manual=true は利用者が向きを手動指定した場合（自動切替しない） */
+function plRecalcT(manual) {
+  const pairs = plCalPairs();
+  PL.T = null; PL.autoNote = '';
+  if (pairs.length < 2) return;
+  const S = plFit(pairs, PL.yUp, 'sim'), S2 = plFit(pairs, !PL.yUp, 'sim');
+  if (S && S2 && !manual) {
+    // 鏡像の取り違え対策: 3点以上は誤差が小さい方、2点のときは「図面内に収まる測点が多い方」を採用
+    const sw = pairs.length >= 3 ? (S2.rms < S.rms * 0.5) : (plInsideCount(S2) > plInsideCount(S));
+    if (sw) { PL.yUp = !PL.yUp; PL.autoNote = '座標の向きを自動で切り替えました'; }
+  }
+  plSyncAxisUI();
+  PL.T = plFit(pairs, PL.yUp, PL.fitMode) || plFit(pairs, !PL.yUp, PL.fitMode);
+  if (GV.useMain) gvRecalc();
+}
+function plFitModeChange(v) { PL.fitMode = v; plRecalcT(true); plCalRefresh(); autoSave(); plUpdateInfo(); plDraw(); }
+function plW2S(X, Y) { const q = plApply(PL.T, X, Y); return { x: q.u * PL.V.s + PL.V.tx, y: q.v * PL.V.s + PL.V.ty }; }
+
+/* =====================================================
+   5. 図面ビューア
+   ===================================================== */
+function plViewerOpen() { const el = plEl('pl-viewer'); return !!(el && el.classList.contains('open')); }
+async function plEnsureLoaded() {
+  if (!PL.stored) throw new Error('図面が未登録です');
+  if (PL.loadedFor !== PL.stored) await plLoadRecord(PL.stored);
+}
+async function plRenderBase(n) {
+  PL.page = n;
+  const MAXL = 4096, MAXA = 12e6;
+  let c, g;
+  if (PL.kind === 'pdf') {
+    const page = await PL.pdfDoc.getPage(n);
+    const v1 = page.getViewport({ scale: 1 });
+    PL.pgW = v1.width; PL.pgH = v1.height;
+    let k = Math.min(MAXL / Math.max(PL.pgW, PL.pgH), Math.sqrt(MAXA / (PL.pgW * PL.pgH)), 8);
+    k = Math.max(k, 0.5);
+    const vp = page.getViewport({ scale: k });
+    c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: vp }).promise;
+  } else {
+    PL.pgW = PL.imgEl.naturalWidth; PL.pgH = PL.imgEl.naturalHeight;
+    const k = Math.min(1, MAXL / Math.max(PL.pgW, PL.pgH), Math.sqrt(MAXA / (PL.pgW * PL.pgH)));
+    c = document.createElement('canvas'); c.width = Math.round(PL.pgW * k); c.height = Math.round(PL.pgH * k);
+    g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingQuality = 'high'; g.drawImage(PL.imgEl, 0, 0, c.width, c.height);
+  }
+  PL.base = c; PL.k = c.width / PL.pgW; PL.hi = null;
+}
+async function plOpenViewer(startMode) {
+  if (!PL.stored) { plToast('先に「図面PDF/画像を登録」してください'); return; }
+  try {
+    plBusy('図面を表示中…');
+    await plEnsureLoaded();
+    if (!PL.base) await plRenderBase(Math.min(PL.page, PL.numPages) || 1);
+    plBusyOff();
+  } catch (e) {
+    plBusyOff(); alert('図面を表示できません。\n' + (e && e.message ? e.message : e)); return;
+  }
+  plEl('pl-viewer').classList.add('open');
+  document.body.style.overflow = 'hidden';
+  plEl('pl_v_title').textContent = PL.name;
+  const sel = plEl('pl_v_page');
+  if (PL.numPages > 1) {
+    sel.innerHTML = Array.from({ length: PL.numPages }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === PL.page ? ' selected' : '') + '>' + (i + 1) + ' / ' + PL.numPages + ' ページ</option>').join('');
+    sel.style.display = '';
+  } else sel.style.display = 'none';
+  plRecalcT();
+  plSyncAxisUI();
+  plSetMode(startMode || (PL.T ? 'target' : 'calib'), true);
+  plResize(); plFitView();
+  const tg = plTarget();
+  if (PL.T && tg && !startMode) plCenterTarget(true);
+  plUpdateInfo(); plDraw();
+  if (startMode === 'range') plToast('座標の表を拡大し、指でなぞって範囲指定 →「この範囲を登録」', 3600);
+  else if (!PL.T) plToast('図面と座標を結び付けるため、2点以上タップして位置合わせしてください', 3600);
+}
+function plCloseViewer() {
+  plEl('pl-viewer').classList.remove('open');
+  document.body.style.overflow = '';
+  plUpdateStatus();
+  if (PL.selId) { const tr = plEl('t1_tr_' + PL.selId); if (tr) tr.scrollIntoView({ block: 'center' }); }
+}
+async function plChangePage(n) {
+  try {
+    plBusy('ページを読み込み中…');
+    await plRenderBase(n);
+    plBusyOff();
+  } catch (e) { plBusyOff(); alert('ページを表示できません。' + e.message); return; }
+  PL.rect = null;
+  plRecalcT(); plSetMode(PL.mode === 'range' ? 'range' : (PL.T ? 'target' : 'calib'), true);
+  plResize(); plFitView(); plUpdateInfo(); plDraw(); autoSave();
+}
+function plResize() {
+  const wrap = plEl('pl_cwrap'), cv = plEl('pl_canvas');
+  const w = wrap.clientWidth, h = wrap.clientHeight, d = window.devicePixelRatio || 1;
+  if (!w || !h) return;
+  PL.cw = w; PL.ch = h; PL.dpr = d;
+  cv.style.width = w + 'px'; cv.style.height = h + 'px';
+  cv.width = Math.round(w * d); cv.height = Math.round(h * d);
+}
+function plFitView() {
+  if (!PL.pgW) return;
+  const s = Math.min(PL.cw / PL.pgW, PL.ch / PL.pgH) * 0.98;
+  PL.fitS = s; PL.V.s = s;
+  PL.V.tx = (PL.cw - PL.pgW * s) / 2; PL.V.ty = (PL.ch - PL.pgH * s) / 2;
+}
+function plFitClick() { plFitView(); plDraw(); }
+function plCenterTarget(quiet) {
+  const tg = plTarget();
+  if (!tg || !PL.T) { if (!quiet) plToast('測点を選択すると、その位置へ移動します'); return; }
+  const q = plApply(PL.T, tg.X, tg.Y);
+  PL.V.s = Math.max(PL.V.s, PL.fitS * 3);
+  PL.V.tx = PL.cw / 2 - q.u * PL.V.s; PL.V.ty = PL.ch / 2 - q.v * PL.V.s;
+  plDraw();
+}
+function plToggleNames() { PL.names = !PL.names; plEl('pl_btn_names').classList.toggle('on', PL.names); plDraw(); }
+function plSetMode(m, silent) {
+  PL.mode = m;
+  ['mech', 'vis', 'target', 'calib', 'range'].forEach(k => plEl('pl_m_' + k).classList.toggle('on', k === m));
+  plEl('pl_calib').classList.toggle('open', m === 'calib');
+  plEl('pl_range').classList.toggle('open', m === 'range');
+  plEl('pl_b_set').style.display = m === 'calib' ? '' : 'none'; plEl('pl_canvas').style.cursor = m === 'calib' ? 'none' : '';
+  if (m === 'calib') plCalRefresh();
+  if (m === 'range') plRangeRefresh(); else plUpdateInfo();
+  requestAnimationFrame(() => { plResize(); plDraw(); });
+  if (!silent) {
+    const msg = { mech: '図面上の測点をタップ → 機械点に設定', vis: '図面上の測点をタップ → 視準点に設定', target: '図面上をタップ → 測点を選択（点の無い場所は任意点として座標を算出）', calib: '', range: '座標の表を拡大し、指でなぞって範囲指定 →「この範囲を登録」' }[m];
+    if (msg) plToast(msg, 2600);
+  }
+}
+
+/* ---------- 表示更新 ---------- */
+function plUpdateInfo() {
+  const el = plEl('pl_v_info'); if (!el) return;
+  if (PL.mode === 'range') {
+    el.innerHTML = '<div class="pl-r1">🔍 座標読取（範囲指定）</div><div><small>登録済み ' + PL.ranges.length + ' 件' + (PL.rect ? '　／　範囲を指定中（「この範囲を登録」で確定）' : '') + '</small></div>';
+    return;
+  }
+  const m = plMechPt(), v = plVisPt(), tg = plTarget();
+  let h = '<div class="pl-r1">🔴 ' + plEsc(m.name || '—') + '　🔵 ' + plEsc(v.name || '—') + (tg ? '　🟢 ' + plEsc(tg.name) : '') + '</div>';
+  if (!PL.T) {
+    h += '<div><small>位置合わせ前です。「📐位置合わせ」で2点以上タップしてください。</small></div>';
+  } else if (!tg) {
+    h += '<div><small>図面上の点をタップ、または計算点一覧で測点を選択してください。</small></div>';
+  } else {
+    const c = plCalc(tg);
+    if (c.none) h += '<div><small>機械点と同じ位置です。</small></div>';
+    else if (m.x === v.x && m.y === v.y) h += '<div>距離 <b>' + fmtDist(c.dist) + '</b>　<small>機械点と視準点が同じ座標です（角度は算出不可）</small></div>';
+    else h += '<div class="pl-r2">距離 <b>' + fmtDist(c.dist) + '</b>　<b>' + plFmtDms(c) + '</b> <small>（右 ' + c.right.toFixed(4) + '° / 左 ' + c.left.toFixed(4) + '°）</small></div>';
+    if (tg.free) h += '<div><small>X ' + tg.X.toFixed(3) + '　Y ' + tg.Y.toFixed(3) + (tg.snap ? '（吸着：厳密値）' : '（⚠ 吸着なし：タップ位置からの概算値）') + '</small> <button class="btn btn-primary" style="min-height:30px;padding:2px 12px;font-size:14px" onclick="plAddFree()">表に追加</button></div>';
+  }
+  el.innerHTML = h;
+}
+function plAddFree() {
+  if (!PL.free) return;
+  const name = (PL.free.name && !plFindPointByName(PL.free.name)) ? PL.free.name : plAutoName();
+  const dg = PL.free.snap ? 6 : 3;
+  t1AddRow(name, PL.free.X.toFixed(dg), PL.free.Y.toFixed(dg));
+  const id = t1Rows[t1Rows.length - 1].id;
+  PL.free = null; plSelectRow(id);
+  autoSave(); plToast('「' + name + '」を計算点一覧に追加しました');
+}
+
+/* ---------- 描画 ---------- */
+function plHaloText(g, txt, x, y, color, lw) {
+  g.lineWidth = lw || 3.5; g.strokeStyle = 'rgba(255,255,255,0.92)'; g.strokeText(txt, x, y);
+  g.fillStyle = color; g.fillText(txt, x, y);
+}
+function plCircle(g, q, r, rgb) {
+  g.beginPath(); g.arc(q.x, q.y, r, 0, Math.PI * 2);
+  g.fillStyle = 'rgba(' + rgb + ',0.32)'; g.fill();
+  g.lineWidth = 2.5; g.strokeStyle = 'rgba(' + rgb + ',0.95)'; g.stroke();
+  g.beginPath(); g.arc(q.x, q.y, 2.2, 0, Math.PI * 2); g.fillStyle = 'rgba(' + rgb + ',1)'; g.fill();
+}
+function plDraw0() {
+  const cv = plEl('pl_canvas');
+  if (!cv || !PL.base || !plViewerOpen()) return;
+  const g = cv.getContext('2d'), d = PL.dpr || 1, s = PL.V.s;
+  g.setTransform(d, 0, 0, d, 0, 0);
+  g.clearRect(0, 0, PL.cw, PL.ch);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(PL.base, PL.V.tx, PL.V.ty, PL.pgW * s, PL.pgH * s);
+  const hi = PL.hi;
+  if (hi && hi.s === s && hi.page === PL.page) { g.save(); g.setTransform(1, 0, 0, 1, 0, 0); g.drawImage(hi.c, Math.round((PL.V.tx - hi.tx) * d), Math.round((PL.V.ty - hi.ty) * d)); g.restore(); }
+  g.strokeStyle = 'rgba(0,0,0,0.25)'; g.lineWidth = 1; g.strokeRect(PL.V.tx, PL.V.ty, PL.pgW * s, PL.pgH * s);
+  g.font = '700 13px "M PLUS 1p", sans-serif'; g.textBaseline = 'middle'; g.lineJoin = 'round';
+
+  if (PL.T && PL.mode !== 'calib' && PL.mode !== 'range') {
+    const mech = plMechPt(), vis = plVisPt(), tg = plTarget();
+    const qm = plW2S(mech.x, mech.y), qv = plW2S(vis.x, vis.y);
+    // 登録済みの全測点
+    plPoints().forEach(p => {
+      const q = plW2S(p.x, p.y);
+      if (q.x < -30 || q.y < -30 || q.x > PL.cw + 30 || q.y > PL.ch + 30) return;
+      g.beginPath(); g.arc(q.x, q.y, 5, 0, Math.PI * 2);
+      g.fillStyle = '#dc2626'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+      if (PL.names) { g.font = '700 24px "M PLUS 1p", sans-serif'; g.textAlign = 'left'; plHaloText(g, p.name, q.x + 9, q.y - 14, '#dc2626', 6); }
+    });
+    // 通り芯図で設定した通り芯点（計算点一覧に未追加でも表示）
+    if (GV.T && GV.pts.length) {
+      const have = new Set(plPoints().map(p => p.name));
+      GV.pts.forEach(p => {
+        if (have.has(p.name)) return;
+        const w = gvWorld(p), q = plW2S(w.X, w.Y);
+        if (q.x < -30 || q.y < -30 || q.x > PL.cw + 30 || q.y > PL.ch + 30) return;
+        g.beginPath(); g.moveTo(q.x, q.y - 8); g.lineTo(q.x + 8, q.y); g.lineTo(q.x, q.y + 8); g.lineTo(q.x - 8, q.y); g.closePath();
+        g.fillStyle = '#dc2626'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+        if (PL.names) { g.font = '700 24px "M PLUS 1p", sans-serif'; g.textAlign = 'left'; plHaloText(g, p.name, q.x + 11, q.y - 14, '#dc2626', 6); }
+      });
+    }
+    // 未追加の通り芯点（吸着できる◇）
+    plSnapTargets().forEach(p => {
+      if (p.id || GV.pts.some(q => q.name === p.name)) return;
+      const q = plW2S(p.x, p.y); if (q.x < -30 || q.y < -30 || q.x > PL.cw + 30 || q.y > PL.ch + 30) return;
+      g.beginPath(); g.moveTo(q.x, q.y - 8); g.lineTo(q.x + 8, q.y); g.lineTo(q.x, q.y + 8); g.lineTo(q.x - 8, q.y); g.closePath();
+      g.fillStyle = '#ea580c'; g.fill(); g.lineWidth = 2; g.strokeStyle = '#fff'; g.stroke();
+      if (PL.names) { g.font = '700 24px "M PLUS 1p", sans-serif'; g.textAlign = 'left'; plHaloText(g, p.name, q.x + 11, q.y - 14, '#c2410c', 6); }
+    });
+    // 機械点→視準点
+    g.save(); g.setLineDash([7, 5]); g.lineWidth = 1.8; g.strokeStyle = 'rgba(37,99,235,0.85)';
+    g.beginPath(); g.moveTo(qm.x, qm.y); g.lineTo(qv.x, qv.y); g.stroke(); g.restore();
+    let bubble = null;
+    if (tg) {
+      const qt = plW2S(tg.X, tg.Y);
+      g.lineWidth = 2.5; g.strokeStyle = 'rgba(22,163,74,0.95)';
+      g.beginPath(); g.moveTo(qm.x, qm.y); g.lineTo(qt.x, qt.y); g.stroke();
+      const c = plCalc(tg);
+      if (!c.none && !(mech.x === vis.x && mech.y === vis.y)) {
+        // 角度の弧（視準方向 → 測点方向）
+        const a1 = Math.atan2(qv.y - qm.y, qv.x - qm.x), a2 = Math.atan2(qt.y - qm.y, qt.x - qm.x);
+        const rightIsCW = PL.T.sg === 1;   // 方位角は X→Y 方向に増加。X上・Y右(sg=1)の図面では画面上で時計回り
+        const anti = (c.dir === 'R') ? !rightIsCW : rightIsCW;
+        const R = Math.max(14, Math.min(46, Math.hypot(qt.x - qm.x, qt.y - qm.y) * 0.4));
+        g.lineWidth = 2.2; g.strokeStyle = 'rgba(217,119,6,0.95)';
+        g.beginPath(); g.arc(qm.x, qm.y, R, a1, a2, anti); g.stroke();
+      }
+      bubble = { qt, c, tg };
+    }
+    plCircle(g, qv, 16, '37,99,235');
+    plCircle(g, qm, 16, '220,38,38');
+    g.font = '800 14px "M PLUS 1p", sans-serif'; g.textAlign = 'left';
+    plHaloText(g, mech.name || '機械点', qm.x + 20, qm.y + 2, '#b91c1c');
+    plHaloText(g, vis.name || '視準点', qv.x + 20, qv.y + 2, '#1d4ed8');
+    if (bubble) {
+      const { qt, c, tg: t } = bubble;
+      plCircle(g, qt, 18, '22,163,74');
+      g.font = '800 15px "M PLUS 1p", sans-serif'; g.textAlign = 'left';
+      plHaloText(g, t.name, qt.x + 22, qt.y - 2, '#0b6b2a');
+      if (!c.none) {
+        const l1 = '距離 ' + fmtDist(c.dist), l2 = plFmtDms(c);
+        g.font = '800 14px "M PLUS 1p", sans-serif';
+        const w = Math.max(g.measureText(l1).width, g.measureText(l2).width) + 16, h = 46;
+        let bx = qt.x + 24, by = qt.y - 26 - h;
+        if (bx + w > PL.cw - 4) bx = qt.x - 24 - w;
+        if (by < 4) by = qt.y + 26;
+        bx = Math.max(4, bx); by = Math.max(4, by);
+        g.fillStyle = 'rgba(255,255,255,0.93)'; g.strokeStyle = 'rgba(22,163,74,0.95)'; g.lineWidth = 2;
+        g.beginPath(); g.rect(bx, by, w, h); g.fill(); g.stroke();
+        g.fillStyle = '#111827'; g.textAlign = 'left'; g.fillText(l1, bx + 8, by + 14); g.fillText(l2, bx + 8, by + 33);
+      }
+    }
+  }
+  // 範囲指定（登録済み＝青、指定中＝オレンジ点線）
+  if (PL.mode === 'range') {
+    g.font = '800 14px "M PLUS 1p", sans-serif'; g.textAlign = 'left';
+    PL.ranges.forEach((r, i) => {
+      if (r.page !== PL.page) return;
+      const x = r.u0 * s + PL.V.tx, y = r.v0 * s + PL.V.ty, w = (r.u1 - r.u0) * s, h = (r.v1 - r.v0) * s;
+      g.fillStyle = 'rgba(37,99,235,0.14)'; g.fillRect(x, y, w, h);
+      g.lineWidth = 2.5; g.strokeStyle = 'rgba(37,99,235,0.95)'; g.strokeRect(x, y, w, h);
+      plHaloText(g, '範囲' + (i + 1), x + 4, y + 12, '#1d4ed8');
+    });
+    if (PL.rect) {
+      const r = plNormRect(PL.rect);
+      const x = r.u0 * s + PL.V.tx, y = r.v0 * s + PL.V.ty, w = (r.u1 - r.u0) * s, h = (r.v1 - r.v0) * s;
+      g.fillStyle = 'rgba(217,119,6,0.18)'; g.fillRect(x, y, w, h);
+      g.save(); g.setLineDash([8, 5]); g.lineWidth = 2.5; g.strokeStyle = '#d97706'; g.strokeRect(x, y, w, h); g.restore();
+    }
+  }
+  // 位置合わせ点（オレンジの十字）
+  const cal = PL.calib[String(PL.page)] || [];
+  if (PL.mode === 'calib' || !PL.T) {
+    cal.forEach(c => {
+      const x = c.u * s + PL.V.tx, y = c.v * s + PL.V.ty;
+      g.lineWidth = 2.2; g.strokeStyle = '#d97706';
+      g.beginPath(); g.arc(x, y, 11, 0, Math.PI * 2); g.moveTo(x - 17, y); g.lineTo(x + 17, y); g.moveTo(x, y - 17); g.lineTo(x, y + 17); g.stroke();
+      g.font = '800 14px "M PLUS 1p", sans-serif'; g.textAlign = 'left'; plHaloText(g, c.name, x + 14, y - 14, '#b45309');
+    });
+  }
+}
+
+function plCrossDraw(g, W, H, x, y) {
+  g.save(); g.setLineDash([]); g.lineCap = 'butt';
+  const L = (c, w) => { g.strokeStyle = c; g.lineWidth = w; g.beginPath(); g.moveTo(0, y); g.lineTo(x - 10, y); g.moveTo(x + 10, y); g.lineTo(W, y); g.moveTo(x, 0); g.lineTo(x, y - 10); g.moveTo(x, y + 10); g.lineTo(x, H); g.stroke(); g.beginPath(); g.arc(x, y, 10, 0, Math.PI * 2); g.stroke(); };
+  L('rgba(255,255,255,0.9)', 3); L('#e11d48', 1); g.restore();
+}
+function plCrossOverlay() {
+  if (!plViewerOpen() || PL.mode !== 'calib' || !PL.base) return;
+  const g = plEl('pl_canvas').getContext('2d'), d = PL.dpr || 1, m = PL.mouse;
+  g.setTransform(d, 0, 0, d, 0, 0); plCrossDraw(g, PL.cw, PL.ch, m ? m.x : PL.cw / 2, m ? m.y : PL.ch / 2);
+}
+function plCrossSet() { if (PL.mode !== 'calib') return; const p = plToPg(PL.cw / 2, PL.ch / 2); plCalAdd(p.u, p.v); }
+let _plHiT = null, _plHiBusy = false;
+function plHiNeeded() { return PL.kind === 'pdf' && PL.pdfDoc && PL.base && PL.V.s * (PL.dpr || 1) > PL.k * 1.05; }
+function plHiStale() { const h = PL.hi, V = PL.V; return !(h && h.s === V.s && h.tx === V.tx && h.ty === V.ty && h.cw === PL.cw && h.ch === PL.ch && h.page === PL.page); }
+function plDraw() {
+  plDraw0();
+  plCrossOverlay();
+  if (plViewerOpen() && plHiNeeded() && plHiStale()) { clearTimeout(_plHiT); _plHiT = setTimeout(plHiRender, 260); }
+}
+async function plHiRender() {
+  if (_plHiBusy) { _plHiT = setTimeout(plHiRender, 200); return; }
+  if (!plViewerOpen() || !plHiNeeded() || !plHiStale()) return;
+  _plHiBusy = true;
+  const V = { s: PL.V.s, tx: PL.V.tx, ty: PL.V.ty, cw: PL.cw, ch: PL.ch, page: PL.page }, d = PL.dpr || 1;
+  try {
+    const page = await PL.pdfDoc.getPage(PL.page);
+    const c = document.createElement('canvas'); c.width = Math.round(V.cw * d); c.height = Math.round(V.ch * d);
+    const g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(V.tx * d, V.ty * d, PL.pgW * V.s * d, PL.pgH * V.s * d);
+    await page.render({ canvasContext: g, viewport: page.getViewport({ scale: V.s * d, offsetX: V.tx * d, offsetY: V.ty * d }) }).promise;
+    if (V.page === PL.page) PL.hi = Object.assign({ c }, V);
+  } catch (e) {}
+  _plHiBusy = false;
+  plDraw();
+}
+
+/* ---------- タップ処理 ---------- */
+/** 吸着の対象：計算点一覧の全測点＋通り芯点（通り芯図で設定した点・JWWから計算した未追加の交点） */
+function plSnapTargets() {
+  const out = plPoints().map(p => ({ id: p.id, name: p.name, x: p.x, y: p.y }));
+  const have = new Set(out.map(o => o.name));
+  const add = (name, x, y) => { if (!name || have.has(name) || out.some(o => Math.abs(o.x - x) < 0.0005 && Math.abs(o.y - y) < 0.0005)) return; have.add(name); out.push({ id: null, name, x, y }); };
+  if (GV.T) GV.pts.forEach(p => { const w = gvWorld(p); add(p.name, w.X, w.Y); });
+  (JWSNAP || []).forEach(c => add(c.name, c.X, c.Y));
+  return out;
+}
+function gvWorld(p) { return p.X !== undefined ? { X: p.X, Y: p.Y } : plInvert(GV.T, p.u, p.v); }
+function plSnapAt(sx, sy, R) {
+  let best = null, bd = R || 32;
+  plSnapTargets().forEach(p => { const q = plW2S(p.x, p.y), dd = Math.hypot(q.x - sx, q.y - sy); if (dd < bd) { bd = dd; best = p; } });
+  return best;
+}
+function plOnTap(sx, sy, pt) {
+  const u = (sx - PL.V.tx) / PL.V.s, v = (sy - PL.V.ty) / PL.V.s;
+  if (PL.mode === 'calib') { if (pt && pt !== 'mouse') plToast('十字線の中心を図面の点に合わせ、「✛ 設定」を押してください', 3000); else plCalAdd(u, v); return; }
+  if (PL.mode === 'range') return;
+  if (!PL.T) { plToast('先に「📐位置合わせ」を行ってください'); return; }
+  const sn = plSnapAt(sx, sy);
+  if (sn) {
+    let p = sn;
+    if (!sn.id) {   // 未登録の吸着点（通り芯の交点など）：厳密な座標をそのまま使う
+      if (PL.mode === 'target') { plSelectRow(null); PL.free = { X: sn.x, Y: sn.y, name: sn.name, snap: true }; plToast('吸着：' + sn.name + '（厳密値）', 1800); plUpdateInfo(); plDraw(); return; }
+      t1AddRow(sn.name, sn.x.toFixed(6), sn.y.toFixed(6)); p = { id: t1Rows[t1Rows.length - 1].id, name: sn.name };
+      t1RecalcAll(); autoSave();
+    }
+    if (PL.mode === 'mech') plSetRole('mech', p);
+    else if (PL.mode === 'vis') plSetRole('vis', p);
+    else plSelectRow(p.id);
+  } else if (PL.mode === 'target') {
+    const w = plInvert(PL.T, u, v);
+    plSelectRow(null); PL.free = { X: w.X, Y: w.Y, snap: false };
+    plToast('吸着なし：タップ位置からの概算値です。点の近く（円の中）をタップしてください', 3200);
+  } else {
+    plToast('近くに登録された測点がありません（機械点・視準点は計算点一覧の測点から選びます）', 3000);
+    return;
+  }
+  plUpdateInfo(); plDraw();
+}
+function plSetRole(role, p) {
+  const nameEl = plEl('t1_' + (role === 'mech' ? 'mech' : 'vis') + '_name');
+  nameEl.value = p.name;
+  if (role === 'mech') t1OnMechNameChange(); else { t1OnVisNameChange(); autoSave(); }
+  plToast((role === 'mech' ? '機械点' : '視準点') + ' を「' + p.name + '」に設定しました');
+}
+
+/* ---------- 位置合わせUI ---------- */
+function plCalRefresh() {
+  const pts = plPoints(), cal = PL.calib[String(PL.page)] || [];
+  const sel = plEl('pl_cal_pt'), prev = sel.value;
+  sel.innerHTML = pts.length
+    ? pts.map(p => '<option value="' + plEsc(p.name) + '">' + plEsc(p.name) + '　(' + p.x.toFixed(2) + ', ' + p.y.toFixed(2) + ')</option>').join('')
+    : '<option value="">計算点一覧に測点がありません</option>';
+  if (prev && pts.some(p => p.name === prev)) sel.value = prev;
+  const T = PL.T;
+  plEl('pl_cal_list').innerHTML = cal.length ? cal.map((c, i) => {
+    let res = '';
+    if (T) {
+      const p = plFindPointByName(c.name), X = p ? p.x : c.X, Y = p ? p.y : c.Y;
+      const q = plBaseApply(T, X, Y), e = Math.hypot(q.u - c.u, q.v - c.v) / T.scale;
+      res = '　ズレ ' + e.toFixed(3) + (cal.length >= 4 && e > T.rms * 2 && e > 0 ? ' ⚠タップし直し推奨' : '');
+    }
+    return '<div class="pl-cal-row"><span>✛ ' + plEsc(c.name) + res + '</span><button onclick="plCalDel(' + i + ')">削除</button></div>';
+  }).join('') : '<div style="color:#8a6d1d">まだ位置合わせ点がありません</div>';
+  const msg = plEl('pl_cal_msg');
+  if (cal.length < 2) { msg.className = 'pl-cal-msg'; msg.textContent = '残り ' + (2 - cal.length) + ' 点以上タップしてください'; }
+  else if (T) {
+    const pairs = plCalPairs(); let spread = 0;
+    pairs.forEach(a => pairs.forEach(b => { spread = Math.max(spread, Math.hypot(a.X - b.X, a.Y - b.Y)); }));
+    const total = plPoints().length, inside = plInsideCount(T);
+    const note = (PL.autoNote ? PL.autoNote + '。' : '') + (T.af ? '縦横別縮尺を補正。' : '') + (T.res ? '位置合わせ点の残差を局所補正。' : '') + '図面内 ' + inside + '/' + total + ' 点。';
+    if (total >= 3 && inside < total * 0.5) { msg.className = 'pl-cal-msg pl-ng'; msg.textContent = '⚠ ' + note + '多くの測点が図面の外に出ています。①タップ位置と測点名の対応、②下の「座標の向き」、③座標の単位（m/mm）を確認してください。'; }
+    else if (cal.length === 2) { msg.className = 'pl-cal-msg'; msg.textContent = note + '2点で位置合わせ済み。誤差は確認できないので、3点目の追加を推奨します'; }
+    else {
+      const rel = spread > 0 ? T.rms / spread : 0;
+      const good = rel < 0.003;
+      msg.className = 'pl-cal-msg ' + (good ? 'pl-ok' : 'pl-ng');
+      msg.textContent = note + (good ? '✅ 良好　' : '⚠ ズレが大きい　') + '平均ズレ ' + T.rms.toFixed(3) + (good ? '' : '（点の位置・選んだ測点・Y向きを確認）');
+    }
+  }
+}
+function plCalAdd(u, v) {
+  const name = plEl('pl_cal_pt').value;
+  if (!name) { plToast('位置合わせに使う測点を選んでください'); return; }
+  const p = plFindPointByName(name); if (!p) return;
+  const key = String(PL.page), arr = PL.calib[key] || (PL.calib[key] = []);
+  const rec = { name, X: p.x, Y: p.y, u, v };
+  const i = arr.findIndex(c => c.name === name);
+  if (i >= 0) arr[i] = rec; else arr.push(rec);
+  plRecalcT();
+  // 次の未登録の測点を自動で選択
+  const sel = plEl('pl_cal_pt');
+  const next = plPoints().find(q => !arr.some(c => c.name === q.name));
+  plCalRefresh();
+  if (next) sel.value = next.name;
+  autoSave(); plUpdateInfo(); plDraw();
+}
+function plCalDel(i) {
+  const arr = PL.calib[String(PL.page)] || []; arr.splice(i, 1);
+  plRecalcT(); plCalRefresh(); autoSave(); plUpdateInfo(); plDraw();
+}
+function plCalClear() {
+  if (!(PL.calib[String(PL.page)] || []).length) return;
+  if (!confirm('このページの位置合わせ点をすべて削除しますか？')) return;
+  PL.calib[String(PL.page)] = []; PL.T = null;
+  plCalRefresh(); autoSave(); plUpdateInfo(); plDraw();
+}
+function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh(); autoSave(); plUpdateInfo(); plDraw(); }
+
+/* ---------- ジェスチャ（パン・ピンチ・ホイール・タップ） ---------- */
+(function plInitGestures() {
+  const cv = plEl('pl_canvas'); if (!cv) return;
+  const ptrs = new Map();
+  let tap = null, last = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const clampS = s => Math.max(PL.fitS * 0.3, Math.min(PL.fitS * 80, s));
+  const pinchState = () => {
+    const a = [...ptrs.values()];
+    return { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2 };
+  };
+  cv.addEventListener('pointerdown', e => {
+    cv.setPointerCapture(e.pointerId);
+    ptrs.set(e.pointerId, pos(e));
+    if (ptrs.size === 1) { const p = pos(e); tap = { x: p.x, y: p.y, t: Date.now(), moved: false, multi: false }; last = p; }
+    else { if (tap) tap.multi = true; last = ptrs.size === 2 ? pinchState() : null; }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = pos(e); ptrs.set(e.pointerId, p);
+    if (ptrs.size === 1) {
+      if (tap && Math.hypot(p.x - tap.x, p.y - tap.y) > 8) tap.moved = true;
+      if (tap && tap.moved && last) {
+        if (PL.mode === 'range' && PL.rangeTool === 'draw') {
+          const a = plToPg(tap.x, tap.y), b = plToPg(p.x, p.y);
+          PL.rect = { u0: a.u, v0: a.v, u1: b.u, v1: b.v }; plDraw();
+        } else { PL.V.tx += p.x - last.x; PL.V.ty += p.y - last.y; plDraw(); }
+      }
+      last = p;
+    } else if (ptrs.size === 2 && last && last.d) {
+      const st = pinchState(), f = clampS(PL.V.s * st.d / last.d) / PL.V.s;
+      PL.V.tx = st.cx - (last.cx - PL.V.tx) * f; PL.V.ty = st.cy - (last.cy - PL.V.ty) * f; PL.V.s *= f;
+      last = st; plDraw();
+    }
+  });
+  const end = e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const wasOne = ptrs.size === 1;
+    ptrs.delete(e.pointerId);
+    if (wasOne && tap && !tap.moved && !tap.multi && Date.now() - tap.t < 700 && e.type === 'pointerup') plOnTap(tap.x, tap.y, e.pointerType);
+    if (PL.mode === 'range' && wasOne && tap && tap.moved && PL.rect) plUpdateInfo();
+    if (ptrs.size === 0) tap = null;
+    last = ptrs.size === 1 ? [...ptrs.values()][0] : null;
+  };
+  cv.addEventListener('pointerup', end);
+  cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { PL.mouse = pos(e); if (PL.mode === 'calib' && !ptrs.has(e.pointerId)) plDraw(); } else PL.mouse = null; });
+  cv.addEventListener('pointerleave', () => { PL.mouse = null; if (PL.mode === 'calib') plDraw(); });
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    const p = pos(e), f = clampS(PL.V.s * Math.exp(-e.deltaY * 0.0016)) / PL.V.s;
+    PL.V.tx = p.x - (p.x - PL.V.tx) * f; PL.V.ty = p.y - (p.y - PL.V.ty) * f; PL.V.s *= f; plDraw();
+  }, { passive: false });
+  if (window.ResizeObserver) new ResizeObserver(() => { if (plViewerOpen()) { plResize(); plDraw(); } }).observe(plEl('pl_cwrap'));
+  window.addEventListener('orientationchange', () => setTimeout(() => { if (plViewerOpen()) { plResize(); plFitView(); plDraw(); } }, 300));
+  document.addEventListener('keydown', e => { if (e.key === 'Escape' && plViewerOpen()) plCloseViewer(); });
+})();
+
+/* ===== JWW直読み: 通り芯の厳密な測点化 ===== */
+var JW = { ents: null, info: null, lines: [], pts: [], fit: null, groups: [] };
+function jwParse(buf) {
+  const u8 = new Uint8Array(buf), dv = new DataView(buf);
+  if (String.fromCharCode(...u8.slice(0, 8)) !== 'JwwData.') throw new Error('JWWファイルではありません');
+  const ver = dv.getUint32(8, true);
+  if (ver < 351) throw new Error('未対応のJWWバージョンです（Ver.' + ver + '）。JWWで開いて保存し直してください');
+  let first = -1;
+  for (let i = 0; i < u8.length - 12; i++) {
+    if (u8[i] === 255 && u8[i + 1] === 255 && u8[i + 6] === 67 && u8[i + 7] === 68 && u8[i + 8] === 97 && u8[i + 9] === 116 && u8[i + 10] === 97) { first = i; break; }
+  }
+  if (first < 2) throw new Error('図形データが見つかりません');
+  let p = first - 2; const n = dv.getUint16(p, true); p += 2;
+  const sj = new TextDecoder('shift_jis'), cmap = {}; let mc = 1;
+  const f8 = () => { const v = dv.getFloat64(p, true); p += 8; return v; };
+  const u4 = () => { const v = dv.getUint32(p, true); p += 4; return v; };
+  const u2 = () => { const v = dv.getUint16(p, true); p += 2; return v; };
+  const str = () => { let l = u8[p++]; if (l === 255) { l = u2(); } const s = sj.decode(u8.subarray(p, p + l)); p += l; return s; };
+  const ents = []; let warn = '';
+  for (let i = 0; i < n; i++) {
+    const w = u2(); let cls;
+    if (w === 0xFFFF) { u2(); const ln = u2(); cls = String.fromCharCode(...u8.slice(p, p + ln)); p += ln; cmap[mc++] = cls; }
+    else if (w & 0x8000) cls = cmap[w & 0x7fff];
+    else { warn = '図形の途中で解析を終了しました'; break; }
+    mc++;
+    if (['CDataSen', 'CDataEnko', 'CDataTen', 'CDataMoji'].indexOf(cls) < 0) { warn = '未対応の図形（' + cls + '）が含まれるため、' + i + '/' + n + '個目までを解析しました'; break; }
+    u4(); const style = u8[p++]; const pen = u2(); u2(); const layer = u2(), glayer = u2(); u2();
+    const e = { cls, style, pen, layer, glayer };
+    if (cls === 'CDataSen') e.p = [f8(), f8(), f8(), f8()];
+    else if (cls === 'CDataEnko') { e.c = [f8(), f8(), f8(), f8(), f8(), f8(), f8()]; u4(); }
+    else if (cls === 'CDataTen') { e.p = [f8(), f8()]; u4(); }
+    else { e.p = [f8(), f8(), f8(), f8()]; u4(); f8(); f8(); f8(); f8(); str(); e.text = str(); }
+    ents.push(e);
+  }
+  return { ents, total: n, warn, ver };
+}
+/** 相似変換 q = a*p + b （複素数 z=x+iy。Q=Y(東)+iX(北)） */
+function jwSim(P, Q) {
+  const n = P.length; let pr = 0, pi = 0, qr = 0, qi = 0;
+  P.forEach((z, k) => { pr += z[0]; pi += z[1]; qr += Q[k][0]; qi += Q[k][1]; }); pr /= n; pi /= n; qr /= n; qi /= n;
+  let nr = 0, ni = 0, den = 0;
+  P.forEach((z, k) => { const dx = z[0] - pr, dy = z[1] - pi, ex = Q[k][0] - qr, ey = Q[k][1] - qi; nr += ex * dx + ey * dy; ni += ey * dx - ex * dy; den += dx * dx + dy * dy; });
+  if (den < 1e-12) return null;
+  const ar = nr / den, ai = ni / den;
+  return { ar, ai, br: qr - (ar * pr - ai * pi), bi: qi - (ar * pi + ai * pr) };
+}
+function jwApply(T, x, y) { return [T.ar * x - T.ai * y + T.br, T.ai * x + T.ar * y + T.bi]; }  // [Y, X]
+/** 表の境界点（名前→X,Y）と、図面上の点図形（名前の文字の近く）を対応付け、位置合わせ */
+function jwCalibrate(ents, table) {
+  const tens = ents.filter(e => e.cls === 'CDataTen').map(e => e.p);
+  const tb = {}; table.forEach(t => { tb[t.name] = t; });
+  const cand = {};   // name -> [[tenIdx]]
+  ents.forEach(e => {
+    if (e.cls !== 'CDataMoji') return;
+    const nm = (e.text || '').trim(); if (!tb[nm]) return;
+    const ds = tens.map((t, i) => ({ i, d: Math.hypot(t[0] - e.p[0], t[1] - e.p[1]) })).filter(o => o.d <= 8).sort((a, b) => a.d - b.d).slice(0, 2);
+    ds.forEach(o => { (cand[nm] = cand[nm] || []); if (cand[nm].indexOf(o.i) < 0) cand[nm].push(o.i); });
+  });
+  const names = Object.keys(cand);
+  if (names.length < 2) return { err: '表の点名と一致する図面上の点名が2点未満です（一致 ' + names.length + '点）' };
+  const Q = nm => [tb[nm].y, tb[nm].x];
+  const inl = (T, tol) => { const m = []; names.forEach(nm => { let best = null; cand[nm].forEach(i => { const q = jwApply(T, tens[i][0], tens[i][1]), q0 = Q(nm), d = Math.hypot(q[0] - q0[0], q[1] - q0[1]); if (d < tol && (!best || d < best.d)) best = { nm, i, d }; }); if (best) m.push(best); }); return m; };
+  let bestM = [], bestT = null;
+  for (let a = 0; a < names.length; a++) for (let b = a + 1; b < names.length; b++) {
+    const qa = Q(names[a]), qb = Q(names[b]), Dq = Math.hypot(qa[0] - qb[0], qa[1] - qb[1]); if (Dq < 5) continue;
+    cand[names[a]].forEach(ia => cand[names[b]].forEach(ib => {
+      const dx = tens[ib][0] - tens[ia][0], dy = tens[ib][1] - tens[ia][1], Dp = Math.hypot(dx, dy); if (Dp < 1e-9) return;
+      const T = jwSim([tens[ia], tens[ib]], [qa, qb]); if (!T) return;
+      const sc = Math.hypot(T.ar, T.ai); if (Math.abs(sc - 1) > 0.02 && Math.abs(sc - 0.001) > 0.0002) return;
+      const m = inl(T, Math.max(0.05, 0.001 * Dq)); if (m.length > bestM.length) { bestM = m; bestT = T; }
+    }));
+  }
+  if (bestM.length < 2) return { err: '図面上の点と表の座標が対応しませんでした' };
+  let T = bestT;
+  for (let k = 0; k < 3; k++) { const m = inl(T, 0.02); if (m.length < 2) break; const T2 = jwSim(m.map(o => tens[o.i]), m.map(o => Q(o.nm))); if (!T2) break; T = T2; bestM = m; }
+  const res = bestM.map(o => { const q = jwApply(T, tens[o.i][0], tens[o.i][1]), q0 = Q(o.nm); return { name: o.nm, d: Math.hypot(q[0] - q0[0], q[1] - q0[1]) }; });
+  return { T, n: bestM.length, scale: Math.hypot(T.ar, T.ai), rot: Math.atan2(T.ai, T.ar) * 180 / Math.PI, max: Math.max(...res.map(r => r.d)), rms: Math.sqrt(res.reduce((s, r) => s + r.d * r.d, 0) / res.length), res };
+}
+/** 通り芯候補の線グループ: ①レイヤA-A  ②赤(線色8)の鎖線(線種4〜7)  ③その他の鎖線 */
+function jwGroups(ents) {
+  const g = {}; const add = (k, label, e) => { (g[k] = g[k] || { key: k, label, lines: [] }).lines.push(e); };
+  ents.forEach(e => {
+    if (e.cls !== 'CDataSen') return;
+    if (e.glayer === 10 && e.layer === 10) add('AA', 'レイヤ A-A の線', e);
+    if (e.pen === 8 && e.style >= 4 && e.style <= 7) add('RC', '赤の一点鎖線（線色8・線種' + e.style + '）', e);
+  });
+  return Object.values(g).sort((a, b) => (a.key === 'AA' ? -1 : 1) - (b.key === 'AA' ? -1 : 1));
+}
+/** 線分群から、平行な線の族を作り、族どうしの交点（無限直線の交点）を求める */
+function jwIntersections(lines, T) {
+  const L = lines.map(e => { const [x1, y1, x2, y2] = e.p, len = Math.hypot(x2 - x1, y2 - y1); let a = Math.atan2(y2 - y1, x2 - x1) % Math.PI; if (a < 0) a += Math.PI; return { x1, y1, x2, y2, len, a }; }).filter(l => l.len > 1e-6);
+  const fam = [];
+  L.forEach(l => { let f = fam.find(f => { const d = Math.abs(f.a - l.a); return Math.min(d, Math.PI - d) < 0.5 * Math.PI / 180; }); if (!f) { f = { a: l.a, ls: [] }; fam.push(f); } f.ls.push(l); });
+  fam.forEach(f => { const nx = -Math.sin(f.a), ny = Math.cos(f.a); f.ls.forEach(l => { l.off = (l.x1 * nx + l.y1 * ny); }); f.ls.sort((p, q) => p.off - q.off); const u = []; f.ls.forEach(l => { if (!u.length || Math.abs(l.off - u[u.length - 1].off) > 0.01) u.push(l); }); f.ls = u; });
+  fam.sort((p, q) => q.ls.length - p.ls.length);
+  const out = [], segDist = (l, x, y) => { const dx = l.x2 - l.x1, dy = l.y2 - l.y1, t = Math.max(0, Math.min(1, ((x - l.x1) * dx + (y - l.y1) * dy) / (dx * dx + dy * dy))); return Math.hypot(x - (l.x1 + t * dx), y - (l.y1 + t * dy)); };
+  const lab = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H', 'I', 'J', 'K', 'L'];
+  for (let a = 0; a < fam.length; a++) for (let b = a + 1; b < fam.length; b++) {
+    fam[a].ls.forEach((p, i) => fam[b].ls.forEach((q, j) => {
+      const dx1 = p.x2 - p.x1, dy1 = p.y2 - p.y1, dx2 = q.x2 - q.x1, dy2 = q.y2 - q.y1, den = dx1 * dy2 - dy1 * dx2; if (Math.abs(den) < 1e-12) return;
+      const t = ((q.x1 - p.x1) * dy2 - (q.y1 - p.y1) * dx2) / den, x = p.x1 + t * dx1, y = p.y1 + t * dy1;
+      if (segDist(p, x, y) > 5 || segDist(q, x, y) > 5) return;
+      const w = jwApply(T, x, y);
+      out.push({ name: '芯' + (lab[i] || (i + 1)) + (j + 1) + (fam.length > 2 ? '_' + (a + 1) + (b + 1) : ''), X: w[1], Y: w[0] });
+    }));
+  }
+  return { pts: out, fam: fam.length, nlines: L.length };
+}
+
+/* ---- JWW通り芯 UI ---- */
+function jwPick() { const el = plEl('jw_file'); el.value = ''; el.click(); }
+function jwClose() { plEl('jw-modal').classList.remove('open'); }
+async function jwOnFile(f) {
+  if (!f) return;
+  const tbl = plPoints();
+  if (tbl.length < 2) { plToast('先に計算点一覧へ境界点（点名・X・Y）を2点以上入力してください', 3800); return; }
+  try {
+    plBusy('JWWを解析中…');
+    const r = jwParse(await f.arrayBuffer());
+    JW.ents = r.ents; JW.info = r; JW.cal = jwCalibrate(r.ents, tbl); JW.groups = jwGroups(r.ents); JW.gi = 0;
+    plBusyOff();
+    jwRender(); plEl('jw-modal').classList.add('open');
+  } catch (e) { plBusyOff(); plToast('JWWを読み込めませんでした：' + e.message, 4500); }
+}
+function jwSel(i) { JW.gi = +i; jwRender(); }
+function jwDigits() { const el = plEl('jw_dig'); return el ? +el.value : 3; }
+function jwRender() {
+  const c = JW.cal, g = JW.groups, note = plEl('jw_note'), body = plEl('jw_body'); let h = '';
+  h += '解析：' + JW.ents.length + '／' + JW.info.total + ' 図形' + (JW.info.warn ? '<br><b style="color:#b91c1c">⚠ ' + plEsc(JW.info.warn) + '</b>' : '') + '<br>';
+  if (c.err) { note.innerHTML = h + '<b style="color:#b91c1c">位置合わせ不可：' + plEsc(c.err) + '</b>'; body.innerHTML = ''; JW.pts = []; return; }
+  const mm = c.max * 1000, ok = mm < 0.5, mid = mm < 5;
+  h += '位置合わせ：境界点 ' + c.n + '点一致／縮尺 ' + c.scale.toFixed(6) + '／回転 ' + c.rot.toFixed(4) + '°<br>最大残差 <b style="color:' + (ok ? '#047857' : mid ? '#b45309' : '#b91c1c') + '">' + mm.toFixed(3) + ' mm</b>（RMS ' + (c.rms * 1000).toFixed(3) + ' mm）' + (ok ? ' ✅ 誤差ほぼ0' : mid ? ' ⚠ 図面の境界点が座標とわずかにずれています' : ' ❌ 図面が座標どおりでない可能性。取込は推奨しません');
+  if (Math.abs(c.scale - 1) > 1e-3) h += '<br><b style="color:#b91c1c">⚠ 縮尺が1:1ではありません。単位を確認してください</b>';
+  if (!g.length) { note.innerHTML = h + '<br><b style="color:#b91c1c">通り芯（レイヤA-A／赤の一点鎖線）が見つかりません</b>'; body.innerHTML = ''; JW.pts = []; return; }
+  const gr = g[JW.gi] || g[0], it = jwIntersections(gr.lines, c.T); JW.pts = it.pts.map(p => ({ ...p, chk: true })); JWSNAP = it.pts.map(p => ({ name: p.name, X: p.X, Y: p.Y })); autoSave();
+  note.innerHTML = h + '<br>通り芯：<select onchange="jwSel(this.value)">' + g.map((x, i) => '<option value="' + i + '"' + (i === JW.gi ? ' selected' : '') + '>' + plEsc(x.label) + '（' + x.lines.length + '本）</option>').join('') + '</select> → 平行な線の族 ' + it.fam + '／交点 ' + it.pts.length + '点' + (it.fam < 2 ? '<br><b style="color:#b91c1c">直交する2方向の通り芯が必要です</b>' : '');
+  jwRows();
+}
+function jwRows() {
+  const d = jwDigits();
+  plEl('jw_body').innerHTML = JW.pts.map((p, i) => '<tr><td style="text-align:center"><input type="checkbox" checked onchange="JW.pts[' + i + '].chk=this.checked"></td><td><input type="text" value="' + plEsc(p.name) + '" oninput="JW.pts[' + i + '].name=this.value"></td><td>' + p.X.toFixed(d) + '</td><td>' + p.Y.toFixed(d) + '</td></tr>').join('');
+}
+function jwAdd() {
+  const d = jwDigits(), c = JW.cal;
+  if (!c || c.err || !JW.pts.length) return;
+  if (c.max * 1000 >= 5 && !confirm('境界点の残差が ' + (c.max * 1000).toFixed(1) + ' mm あります。それでも取り込みますか？')) return;
+  let n = 0, u = 0;
+  JW.pts.filter(p => p.chk && p.name.trim()).forEach(p => {
+    const nm = p.name.trim(), xs = p.X.toFixed(d), ys = p.Y.toFixed(d), ex = plFindPointByName(nm);
+    if (ex) { if (!confirm('「' + nm + '」は既にあります。座標を上書きしますか？')) return; plEl('t1_x_' + ex.id).value = xs; plEl('t1_y_' + ex.id).value = ys; t1OnCoordChange(ex.id); u++; }
+    else { t1AddRow(nm, xs, ys); n++; }
+  });
+  t1RecalcAll(); autoSave(); jwClose();
+  plToast('通り芯交点を 追加 ' + n + '件／更新 ' + u + '件（JWW厳密値）', 3800);
+}
+
+/* =====================================================
+   6. 通り芯図（建物配置図）→ 通り芯交点の座標算出 → 計算点一覧へ
+      境界点で図面と座標を結び付け、通り芯の交点（PDFの線を解析して自動検出）を測点化する
+   ===================================================== */
+const GV = { stored: null, loaded: null, kind: null, doc: null, img: null, pgW: 0, pgH: 0, page: 1, base: null,
+  V: { s: 1, tx: 0, ty: 0 }, fitS: 1, cw: 0, ch: 0, dpr: 1, calib: [], pts: [], cands: [], T: null, yUp: true, mode: 'calib', detDone: false, useMain: false, baseFor: 0, mouse: null };
+function gvRestore(m) {
+  GV.calib = (m && m.calib) || []; GV.pts = (m && m.pts) || []; GV.page = (m && m.page) || 1;
+  GV.yUp = m && m.yUp !== undefined ? !!m.yUp : PL.yUp;
+  GV.useMain = !!(m && m.useMain);
+  GV.stored = null; GV.loaded = null; GV.doc = null; GV.img = null; GV.base = null; GV.T = null; GV.cands = []; GV.detDone = false;
+  gvStatus();
+  const sid = _currentSiteId;
+  if (sid && !GV.useMain) plIdbGet('grid_' + sid).then(rec => { if (sid !== _currentSiteId || !rec) return; GV.stored = rec; GV.kind = rec.kind; gvStatus(); }).catch(() => {});
+}
+function gvStatus() {
+  const el = plEl('gv_status'); if (!el) return;
+  const st = GV.useMain ? PL.stored : GV.stored;
+  el.innerHTML = !st ? '通り芯図：未登録（登録済みの図面PDFをそのまま使うか、別の通り芯図を登録します）'
+    : '🏢 <b>' + plEsc(st.name) + '</b>' + (GV.useMain ? '（最初に登録した図面PDFを使用・' + GV.page + 'ページ）' : '') + '　位置合わせ ' + (GV.useMain ? '図面の設定を共用' : GV.calib.length + '点') + '／通り芯 ' + GV.pts.length + '点';
+}
+async function gvUseMain() {
+  if (!PL.stored) { plToast('先に「図面PDF/画像を登録」してください'); return; }
+  if (!GV.useMain && (GV.calib.length || GV.pts.length) && !confirm('通り芯図を、最初に登録した図面PDFに切り替えます。現在の通り芯図の位置合わせ・選択点はリセットされます。よろしいですか？')) return;
+  if (!GV.useMain) { GV.calib = []; GV.pts = []; GV.cands = []; GV.detDone = false; GV.base = null; GV.loaded = null; GV.page = PL.page; }
+  GV.useMain = true; GV.stored = PL.stored; autoSave(); gvStatus(); gvOpen();
+}
+function gvPick() { const el = plEl('gv_file'); el.value = ''; el.click(); }
+async function gvLoadRec(rec) {
+  if (rec.kind === 'pdf') { const lib = await plEnsurePdfJs(); GV.doc = await lib.getDocument({ data: new Uint8Array(rec.bytes.slice(0)) }).promise; GV.img = null; }
+  else { GV.img = await plLoadImage(rec.bytes, rec.mime); GV.doc = null; }
+  GV.kind = rec.kind; GV.loaded = rec; GV.base = null; GV.page = 1;
+}
+async function gvOnFile(file) {
+  if (!file) return;
+  try {
+    if (GV.stored && (GV.calib.length || GV.pts.length) && !confirm('通り芯図を差し替えると、通り芯図の位置合わせと選択済みの通り芯点はリセットされます。よろしいですか？')) return;
+    plBusy('通り芯図を読み込み中…');
+    const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
+    const rec = { kind: isPdf ? 'pdf' : 'img', name: file.name, mime: file.type || (isPdf ? 'application/pdf' : 'image/png'), bytes: await file.arrayBuffer() };
+    await gvLoadRec(rec);
+    GV.useMain = false; GV.stored = rec; GV.calib = []; GV.pts = []; GV.cands = []; GV.T = null; GV.detDone = false;
+    if (_currentSiteId) await plIdbPut('grid_' + _currentSiteId, rec);
+    plBusyOff(); autoSave(); gvStatus();
+    plToast(_currentSiteId ? '通り芯図を登録しました。「通り芯を測点化」を押してください' : '現場が未選択のため、この図面は保存されません', 3200);
+  } catch (e) { plBusyOff(); alert('通り芯図を読み込めませんでした。\n' + (e && e.message ? e.message : e)); }
+}
+async function gvRemove() {
+  if (!(GV.useMain ? PL.stored : GV.stored) || !confirm('登録した通り芯図と、その位置合わせ・選択点を削除しますか？（計算点一覧に追加済みの点は残ります）')) return;
+  if (_currentSiteId && !GV.useMain) await plIdbDel('grid_' + _currentSiteId);
+  GV.useMain = false; GV.stored = null; GV.loaded = null; GV.doc = null; GV.img = null; GV.base = null; GV.calib = []; GV.pts = []; GV.cands = []; GV.T = null; GV.detDone = false;
+  autoSave(); gvStatus();
+}
+async function gvRender() {
+  const MAXL = 4096, MAXA = 12e6; let c, g;
+  if (GV.kind === 'pdf') {
+    const page = await GV.doc.getPage(GV.page), v1 = page.getViewport({ scale: 1 });
+    GV.pgW = v1.width; GV.pgH = v1.height;
+    const k = Math.max(0.5, Math.min(MAXL / Math.max(GV.pgW, GV.pgH), Math.sqrt(MAXA / (GV.pgW * GV.pgH)), 8));
+    const vp = page.getViewport({ scale: k });
+    c = document.createElement('canvas'); c.width = Math.ceil(vp.width); c.height = Math.ceil(vp.height);
+    g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    await page.render({ canvasContext: g, viewport: vp }).promise;
+  } else {
+    GV.pgW = GV.img.naturalWidth; GV.pgH = GV.img.naturalHeight;
+    const k = Math.min(1, MAXL / Math.max(GV.pgW, GV.pgH), Math.sqrt(MAXA / (GV.pgW * GV.pgH)));
+    c = document.createElement('canvas'); c.width = Math.round(GV.pgW * k); c.height = Math.round(GV.pgH * k);
+    g = c.getContext('2d'); g.fillStyle = '#fff'; g.fillRect(0, 0, c.width, c.height);
+    g.imageSmoothingQuality = 'high'; g.drawImage(GV.img, 0, 0, c.width, c.height);
+  }
+  GV.base = c; GV.baseFor = GV.page;
+}
+function gvOpenNow() { return plEl('gv-viewer').classList.contains('open'); }
+async function gvOpen() {
+  if (!(GV.useMain ? PL.stored : GV.stored)) { plToast('先に図面または通り芯図を登録してください'); return; }
+  try {
+    plBusy('通り芯図を表示中…');
+    if (GV.useMain) { await plEnsureLoaded(); GV.stored = PL.stored; GV.doc = PL.pdfDoc; GV.img = PL.imgEl; GV.kind = PL.kind; if (GV.loaded !== PL.stored) { GV.base = null; GV.loaded = PL.stored; } if (GV.page > PL.numPages) GV.page = 1; }
+    else if (GV.loaded !== GV.stored) await gvLoadRec(GV.stored);
+    if (!GV.base || GV.baseFor !== GV.page) await gvRender();
+    plBusyOff();
+  } catch (e) { plBusyOff(); alert('通り芯図を表示できません。\n' + (e && e.message ? e.message : e)); return; }
+  plEl('gv-viewer').classList.add('open'); document.body.style.overflow = 'hidden';
+  plEl('gv_title').textContent = GV.stored.name;
+  const np = GV.kind === 'pdf' && GV.doc ? GV.doc.numPages : 1, sel = plEl('gv_page');
+  if (np > 1) { sel.innerHTML = Array.from({ length: np }, (_, i) => '<option value="' + (i + 1) + '"' + (i + 1 === GV.page ? ' selected' : '') + '>' + (i + 1) + ' / ' + np + ' ページ</option>').join(''); sel.style.display = ''; } else sel.style.display = 'none';
+  gvRecalc(); gvMode(GV.T ? 'pick' : 'calib', true);
+  gvResize(); gvFit();
+}
+function gvClose() { plEl('gv-viewer').classList.remove('open'); document.body.style.overflow = ''; gvStatus(); if (plViewerOpen()) plDraw(); }
+async function gvPage(n) {
+  if ((GV.pts.length || (!GV.useMain && GV.calib.length)) && !confirm('ページを切り替えると、選択済みの通り芯点' + (GV.useMain ? '' : 'と位置合わせ') + 'はリセットされます。よろしいですか？')) { plEl('gv_page').value = GV.page; return; }
+  try { plBusy('ページを読み込み中…'); GV.page = n; GV.pts = []; GV.calib = []; GV.cands = []; GV.detDone = false; await gvRender(); plBusyOff(); }
+  catch (e) { plBusyOff(); alert('ページを表示できません。' + (e && e.message ? e.message : e)); return; }
+  gvRecalc(); gvMode(GV.T ? 'pick' : 'calib', true); gvResize(); gvFit(); autoSave(); gvStatus();
+}
+function gvResize() {
+  const w = plEl('gv_cwrap'), cv = plEl('gv_canvas'), cw = w.clientWidth, ch = w.clientHeight, d = window.devicePixelRatio || 1;
+  if (!cw || !ch) return;
+  GV.cw = cw; GV.ch = ch; GV.dpr = d; cv.style.width = cw + 'px'; cv.style.height = ch + 'px'; cv.width = Math.round(cw * d); cv.height = Math.round(ch * d);
+}
+function gvFit() {
+  if (!GV.pgW) return;
+  const s = Math.min(GV.cw / GV.pgW, GV.ch / GV.pgH) * 0.98;
+  GV.fitS = s; GV.V.s = s; GV.V.tx = (GV.cw - GV.pgW * s) / 2; GV.V.ty = (GV.ch - GV.pgH * s) / 2; gvDraw();
+}
+function gvPairs() { return GV.calib.map(c => { const p = plFindPointByName(c.name); return { name: c.name, X: p ? p.x : c.X, Y: p ? p.y : c.Y, u: c.u, v: c.v }; }); }
+function gvRecalc(manual) {
+  if (GV.useMain) {
+    const q = (PL.calib[String(GV.page)] || []).map(c => { const p = plFindPointByName(c.name); return { name: c.name, X: p ? p.x : c.X, Y: p ? p.y : c.Y, u: c.u, v: c.v }; });
+    GV.T = q.length >= 2 ? (plFit(q, PL.yUp, PL.fitMode) || plFit(q, !PL.yUp, PL.fitMode)) : null; if (GV.T) GV.yUp = PL.yUp; return;
+  }
+  const pr = gvPairs(); GV.T = null; if (pr.length < 2) return;
+  if (!manual && pr.length >= 3) { const a = plFit(pr, GV.yUp, 'sim'), b = plFit(pr, !GV.yUp, 'sim'); if (a && b && b.rms < a.rms * 0.5) GV.yUp = !GV.yUp; }
+  GV.T = plFit(pr, GV.yUp, PL.fitMode) || plFit(pr, !GV.yUp, PL.fitMode);
+}
+function gvYup(v) { GV.yUp = (v === '1'); gvRecalc(true); gvRefresh(); gvDraw(); autoSave(); }
+function gvMode(m, silent) {
+  if (GV.useMain && m === 'calib' && GV.T) { plToast('最初の図面PDFの位置合わせを使用中です（変更は「図面を表示」→📐位置合わせ）', 3600); m = 'pick'; }
+  if (m === 'pick' && !GV.T) { plToast('先に①で境界点を2点以上タップして位置合わせしてください', 3000); m = 'calib'; }
+  GV.mode = m;
+  plEl('gv_m_calib').classList.toggle('on', m === 'calib'); plEl('gv_m_pick').classList.toggle('on', m === 'pick');
+  plEl('gv_panel').classList.add('open');
+  plEl('gv_calpart').style.display = m === 'calib' ? '' : 'none'; plEl('gv_pickpart').style.display = m === 'pick' ? '' : 'none';
+  gvRefresh();
+  requestAnimationFrame(() => { gvResize(); gvDraw(); });
+  if (m === 'pick' && !GV.detDone && GV.kind === 'pdf') gvDetect(true);
+}
+function gvRefresh() {
+  const inf = plEl('gv_info'); if (!inf) return;
+  plEl('gv_cal_yup').value = GV.yUp ? '1' : '0';
+  if (GV.mode === 'calib') {
+    const pts = plPoints(), sel = plEl('gv_cal_pt'), prev = sel.value;
+    sel.innerHTML = pts.length ? pts.map(p => '<option value="' + plEsc(p.name) + '">' + plEsc(p.name) + '　(' + p.x.toFixed(2) + ', ' + p.y.toFixed(2) + ')</option>').join('') : '<option value="">計算点一覧に境界点がありません</option>';
+    if (prev && pts.some(p => p.name === prev)) sel.value = prev;
+    const T = GV.T;
+    plEl('gv_cal_list').innerHTML = GV.calib.length ? GV.calib.map((c, i) => {
+      let r = '';
+      if (T) { const q = plBaseApply(T, gvPairs()[i].X, gvPairs()[i].Y); r = '　ズレ ' + (Math.hypot(q.u - c.u, q.v - c.v) / T.scale).toFixed(3); }
+      return '<div class="pl-cal-row"><span>✛ ' + plEsc(c.name) + r + '</span><button onclick="gvCalDel(' + i + ')">削除</button></div>';
+    }).join('') : '<div style="color:#8a6d1d">まだ位置合わせ点がありません</div>';
+    const msg = plEl('gv_cal_msg');
+    if (GV.calib.length < 2) { msg.className = 'pl-cal-msg'; msg.textContent = '残り ' + (2 - GV.calib.length) + ' 点以上タップしてください'; }
+    else if (T) { msg.className = 'pl-cal-msg ' + (GV.calib.length >= 3 ? 'pl-ok' : ''); msg.textContent = GV.calib.length >= 3 ? '位置合わせ済み　平均ズレ ' + T.rms.toFixed(3) : '2点で位置合わせ済み（3点目で誤差確認を推奨）'; }
+    if (GV.useMain) { const msg2 = plEl('gv_cal_msg'); msg2.className = 'pl-cal-msg pl-ng'; msg2.textContent = '最初の図面PDF（このページ）の位置合わせが2点未満です。「図面を表示」→📐位置合わせで2点以上設定してください'; plEl('gv_cal_list').innerHTML = ''; }
+    inf.innerHTML = '<div class="pl-r1">📐 ①境界点の位置合わせ（' + (GV.useMain ? '図面の設定を共用' : GV.calib.length + '点') + '）</div>';
+  } else {
+    plEl('gv_pt_list').innerHTML = GV.pts.length ? GV.pts.map((p, i) => {
+      const w = GV.T ? gvWorld(p) : null;
+      return '<div class="pl-cal-row"><span>' + plEsc(p.name) + (w ? '　X ' + w.X.toFixed(3) + '　Y ' + w.Y.toFixed(3) : '') + '</span><button onclick="gvDelPt(' + i + ')">削除</button></div>';
+    }).join('') : '<div style="color:#8a6d1d">まだ通り芯点がありません</div>';
+    inf.innerHTML = '<div class="pl-r1">✚ ②通り芯交点（選択 ' + GV.pts.length + '点／自動検出 ' + GV.cands.length + '点）</div>';
+  }
+}
+function gvCalDel(i) { GV.calib.splice(i, 1); gvRecalc(); gvRefresh(); autoSave(); gvDraw(); }
+function gvCalClear() { if (!GV.calib.length || !confirm('通り芯図の位置合わせ点をすべて削除しますか？')) return; GV.calib = []; GV.T = null; gvRefresh(); autoSave(); gvDraw(); }
+function gvDelPt(i) { GV.pts.splice(i, 1); gvRefresh(); autoSave(); gvDraw(); }
+function gvTap(sx, sy, pt) {
+  if (pt && pt !== 'mouse') { plToast('十字線の中心を点に合わせ、「✛ 設定」を押してください', 3000); return; }
+  gvPlace(sx, sy);
+}
+function gvCrossSet() { gvPlace(GV.cw / 2, GV.ch / 2); }
+function gvPlace(sx, sy) {
+  const u = (sx - GV.V.tx) / GV.V.s, v = (sy - GV.V.ty) / GV.V.s;
+  if (GV.mode === 'calib') {
+    if (GV.useMain) { plToast('最初の図面PDFの位置合わせを使用中です'); return; }
+    const name = plEl('gv_cal_pt').value; if (!name) { plToast('位置合わせに使う境界点を選んでください'); return; }
+    const p = plFindPointByName(name); if (!p) return;
+    const rec = { name, X: p.x, Y: p.y, u, v }, i = GV.calib.findIndex(c => c.name === name);
+    if (i >= 0) GV.calib[i] = rec; else GV.calib.push(rec);
+    gvRecalc(); const nx = plPoints().find(q => !GV.calib.some(c => c.name === q.name));
+    gvRefresh(); if (nx) plEl('gv_cal_pt').value = nx.name;
+    autoSave(); gvDraw(); return;
+  }
+  if (!GV.T) return;
+  let best = null, bd = 30;
+  GV.cands.forEach(c => { const dd = Math.hypot(c.u * GV.V.s + GV.V.tx - sx, c.v * GV.V.s + GV.V.ty - sy); if (dd < bd) { bd = dd; best = c; } });
+  let jc = null, jd = 32;   // JWWから計算した厳密な通り芯交点への吸着（優先）
+  (JWSNAP || []).forEach(c => { const q = plApply(GV.T, c.X, c.Y), dd = Math.hypot(q.u * GV.V.s + GV.V.tx - sx, q.v * GV.V.s + GV.V.ty - sy); if (dd < jd) { jd = dd; jc = c; } });
+  if (!jc && !best) plToast('吸着なし：タップ位置からの概算値になります（◇の近くをタップすると厳密値）', 3600);
+  const pu = best ? best.u : u, pv = best ? best.v : v;
+  const nm = prompt('この通り芯点の測点名（表に追加される名前）', jc ? jc.name : (best ? best.name : 'P' + (GV.pts.length + 1)));
+  if (!nm || !nm.trim()) return;
+  const rec = { name: nm.trim(), u: pu, v: pv }, i = GV.pts.findIndex(p => p.name === rec.name);
+  if (jc) { const q = plApply(GV.T, jc.X, jc.Y); rec.u = q.u; rec.v = q.v; rec.X = jc.X; rec.Y = jc.Y; }
+  if (i >= 0) GV.pts[i] = rec; else GV.pts.push(rec);
+  gvRefresh(); autoSave(); gvDraw();
+}
+/** PDFの線（一点鎖線など）を解析し、直交する通り芯同士の交点を候補として検出。端部付近の文字（X1,Y2…）から名前を推定 */
+async function gvDetect(quiet) {
+  GV.detDone = true;
+  if (GV.kind !== 'pdf') { if (!quiet) plToast('自動検出はPDFのみ対応です。交点を直接タップしてください', 3000); return; }
+  try {
+    plBusy('通り芯を解析中…');
+    const lib = await plEnsurePdfJs(), OPS = lib.OPS;
+    const page = await GV.doc.getPage(GV.page), vp = page.getViewport({ scale: 1 }), ol = await page.getOperatorList();
+    const mul = (m, n) => [m[0] * n[0] + m[2] * n[1], m[1] * n[0] + m[3] * n[1], m[0] * n[2] + m[2] * n[3], m[1] * n[2] + m[3] * n[3], m[0] * n[4] + m[2] * n[5] + m[4], m[1] * n[4] + m[3] * n[5] + m[5]];
+    let ctm = [1, 0, 0, 1, 0, 0], dash = false, stack = [], cur = [], px = 0, py = 0; const raw = [];
+    const P = (x, y) => vp.convertToViewportPoint(ctm[0] * x + ctm[2] * y + ctm[4], ctm[1] * x + ctm[3] * y + ctm[5]);
+    for (let i = 0; i < ol.fnArray.length; i++) {
+      const fn = ol.fnArray[i], a = ol.argsArray[i];
+      if (fn === OPS.save) stack.push([ctm, dash]);
+      else if (fn === OPS.restore || fn === OPS.paintFormXObjectEnd) { const t = stack.pop(); if (t) { ctm = t[0]; dash = t[1]; } }
+      else if (fn === OPS.transform) ctm = mul(ctm, a);
+      else if (fn === OPS.paintFormXObjectBegin) { stack.push([ctm, dash]); if (a && a[0]) ctm = mul(ctm, a[0]); }
+      else if (fn === OPS.setDash) dash = !!(a[0] && a[0].length && a[0].some(x => x > 0));
+      else if (fn === OPS.constructPath) {
+        const ops = a[0], co = a[1]; let k = 0;
+        for (const op of ops) {
+          if (op === OPS.moveTo) { px = co[k++]; py = co[k++]; }
+          else if (op === OPS.lineTo) { const x = co[k++], y = co[k++], p0 = P(px, py), p1 = P(x, y); cur.push({ u1: p0[0], v1: p0[1], u2: p1[0], v2: p1[1] }); px = x; py = y; }
+          else if (op === OPS.curveTo) { k += 6; px = co[k - 2]; py = co[k - 1]; }
+          else if (op === OPS.curveTo2 || op === OPS.curveTo3) { k += 4; px = co[k - 2]; py = co[k - 1]; }
+          else if (op === OPS.rectangle) k += 4;
+        }
+      }
+      else if (fn === OPS.stroke || fn === OPS.closeStroke || fn === OPS.fillStroke || fn === OPS.eoFillStroke || fn === OPS.closeFillStroke || fn === OPS.closeEOFillStroke) { cur.forEach(s => raw.push(Object.assign({ dash }, s))); cur = []; }
+      else if (fn === OPS.fill || fn === OPS.eoFill || fn === OPS.endPath) cur = [];
+    }
+    const L = Math.max(GV.pgW, GV.pgH);
+    const all = raw.map(r => Object.assign(r, { len: Math.hypot(r.u2 - r.u1, r.v2 - r.v1) }));
+    let ls = all.filter(r => r.dash && r.len >= L * 0.10);
+    if (ls.length < 4) ls = all.filter(r => r.len >= L * 0.35);
+    ls.forEach(r => { r.ang = (Math.atan2(r.v2 - r.v1, r.u2 - r.u1) * 180 / Math.PI + 180) % 180; });
+    ls.sort((p, q) => p.ang - q.ang);
+    const groups = [];
+    ls.forEach(r => { const g = groups[groups.length - 1]; if (g && r.ang - g.a0 <= 2) { g.l.push(r); g.len += r.len; } else groups.push({ a0: r.ang, l: [r], len: r.len }); });
+    if (groups.length > 1 && groups[0].a0 + 180 - groups[groups.length - 1].l[groups[groups.length - 1].l.length - 1].ang <= 2) { const f = groups.shift(); groups[groups.length - 1].l.push(...f.l); groups[groups.length - 1].len += f.len; }
+    groups.sort((p, q) => q.len - p.len);
+    const ga = groups[0]; let gb = null;
+    if (ga) { const am = ga.l[0].ang; gb = groups.find(g => g !== ga && Math.abs(((g.l[0].ang - am + 180) % 180) - 90) <= 4); }
+    if (!ga || !gb) { plBusyOff(); GV.cands = []; gvRefresh(); gvDraw(); if (!quiet) plToast('直交する通り芯が見つかりませんでした。交点を直接タップしてください', 3600); else plToast('通り芯を自動検出できませんでした。交点を直接タップしてください', 3600); return; }
+    const A = ga.l.sort((p, q) => q.len - p.len).slice(0, 60), B = gb.l.sort((p, q) => q.len - p.len).slice(0, 60), tol = L * 0.02, out = [];
+    for (const a of A) for (const b of B) {
+      const dx1 = a.u2 - a.u1, dy1 = a.v2 - a.v1, dx2 = b.u2 - b.u1, dy2 = b.v2 - b.v1, den = dx1 * dy2 - dy1 * dx2;
+      if (Math.abs(den) < 1e-9) continue;
+      const t = ((b.u1 - a.u1) * dy2 - (b.v1 - a.v1) * dx2) / den, w = ((b.u1 - a.u1) * dy1 - (b.v1 - a.v1) * dx1) / den;
+      if (t < -tol / a.len || t > 1 + tol / a.len || w < -tol / b.len || w > 1 + tol / b.len) continue;
+      const u = a.u1 + t * dx1, v = a.v1 + t * dy1;
+      if (out.some(o => Math.hypot(o.u - u, o.v - v) < 1)) continue;
+      out.push({ u, v, a, b });
+    }
+    const tc = await page.getTextContent(), TX = [];
+    tc.items.forEach(it => { const s = (it.str || '').trim(); if (!s || s.length > 4) return; const q = vp.convertToViewportPoint(it.transform[4], it.transform[5]); TX.push({ s, u: q[0] + (it.width || 0) / 2, v: q[1] - (it.height || 0) / 2 }); });
+    const lab = ln => {
+      if (ln._l !== undefined) return ln._l;
+      let best = null, bd = L * 0.05;
+      [[ln.u1, ln.v1], [ln.u2, ln.v2]].forEach(e => TX.forEach(t => { const dd = Math.hypot(t.u - e[0], t.v - e[1]); if (dd < bd) { bd = dd; best = t.s; } }));
+      return (ln._l = best);
+    };
+    GV.cands = out.slice(0, 800).map((c, i) => { const la = lab(c.a), lb = lab(c.b); return { u: c.u, v: c.v, name: la && lb ? la + '-' + lb : 'P' + (i + 1) }; });
+    plBusyOff(); gvRefresh(); gvDraw();
+    plToast(GV.cands.length ? '通り芯の交点を ' + GV.cands.length + ' 個検出しました（◇）。名前は端部の文字から推定しています' : '通り芯の交点を検出できませんでした。交点を直接タップしてください', 3600);
+  } catch (e) { plBusyOff(); plToast('自動検出に失敗しました：' + (e && e.message ? e.message : e), 3600); }
+}
+function gvAdd() {
+  if (!GV.T || !GV.pts.length) { plToast('①位置合わせと②通り芯交点の選択を先に行ってください', 3000); return; }
+  let n = 0, u = 0;
+  GV.pts.forEach(p => {
+    const dg = p.X !== undefined ? 6 : 3, w = gvWorld(p), xs = w.X.toFixed(dg), ys = w.Y.toFixed(dg), ex = plFindPointByName(p.name);
+    if (ex) {
+      if (!confirm('「' + p.name + '」は計算点一覧に既にあります。座標を上書きしますか？')) return;
+      plEl('t1_x_' + ex.id).value = xs; plEl('t1_y_' + ex.id).value = ys; t1OnCoordChange(ex.id); u++;
+    } else { t1AddRow(p.name, xs, ys); n++; }
+  });
+  t1RecalcAll(); autoSave();
+  plToast('計算点一覧に 追加 ' + n + '件／更新 ' + u + '件。メイン図面にも表示されます', 3800);
+}
+function gvDraw() {
+  const cv = plEl('gv_canvas'); if (!cv || !GV.base || !gvOpenNow()) return;
+  const g = cv.getContext('2d'), d = GV.dpr || 1, s = GV.V.s;
+  g.setTransform(d, 0, 0, d, 0, 0); g.clearRect(0, 0, GV.cw, GV.ch);
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.drawImage(GV.base, GV.V.tx, GV.V.ty, GV.pgW * s, GV.pgH * s);
+  g.lineJoin = 'round'; g.textBaseline = 'middle'; g.textAlign = 'left';
+  const S = (u, v) => ({ x: u * s + GV.V.tx, y: v * s + GV.V.ty });
+  if (GV.mode === 'pick') {
+    g.strokeStyle = 'rgba(234,88,12,.9)'; g.lineWidth = 1.6;
+    GV.cands.forEach(c => { const q = S(c.u, c.v); if (q.x < -20 || q.y < -20 || q.x > GV.cw + 20 || q.y > GV.ch + 20) return; g.beginPath(); g.moveTo(q.x, q.y - 7); g.lineTo(q.x + 7, q.y); g.lineTo(q.x, q.y + 7); g.lineTo(q.x - 7, q.y); g.closePath(); g.stroke(); });
+  }
+  GV.calib.forEach(c => {
+    const q = S(c.u, c.v); g.lineWidth = 2.2; g.strokeStyle = '#d97706';
+    g.beginPath(); g.arc(q.x, q.y, 11, 0, Math.PI * 2); g.moveTo(q.x - 17, q.y); g.lineTo(q.x + 17, q.y); g.moveTo(q.x, q.y - 17); g.lineTo(q.x, q.y + 17); g.stroke();
+    g.font = '800 16px "M PLUS 1p", sans-serif'; plHaloText(g, c.name, q.x + 14, q.y - 14, '#b45309');
+  });
+  GV.pts.forEach(p => { const q = S(p.u, p.v); plCircle(g, q, 12, '22,163,74'); g.font = '800 18px "M PLUS 1p", sans-serif'; plHaloText(g, p.name, q.x + 16, q.y - 12, '#0b6b2a', 5); });
+  const m = GV.mouse; plCrossDraw(g, GV.cw, GV.ch, m ? m.x : GV.cw / 2, m ? m.y : GV.ch / 2);
+}
+(function gvGestures() {
+  const cv = plEl('gv_canvas'); if (!cv) return;
+  const ptrs = new Map(); let tap = null, last = null;
+  const pos = e => { const r = cv.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; };
+  const clampS = s => Math.max(GV.fitS * 0.3, Math.min(GV.fitS * 80, s));
+  const pin = () => { const a = [...ptrs.values()]; return { d: Math.hypot(a[0].x - a[1].x, a[0].y - a[1].y) || 1, cx: (a[0].x + a[1].x) / 2, cy: (a[0].y + a[1].y) / 2 }; };
+  cv.addEventListener('pointerdown', e => {
+    cv.setPointerCapture(e.pointerId); ptrs.set(e.pointerId, pos(e));
+    if (ptrs.size === 1) { const p = pos(e); tap = { x: p.x, y: p.y, t: Date.now(), moved: false, multi: false }; last = p; }
+    else { if (tap) tap.multi = true; last = ptrs.size === 2 ? pin() : null; }
+  });
+  cv.addEventListener('pointermove', e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const p = pos(e); ptrs.set(e.pointerId, p);
+    if (ptrs.size === 1) {
+      if (tap && Math.hypot(p.x - tap.x, p.y - tap.y) > 8) tap.moved = true;
+      if (tap && tap.moved && last) { GV.V.tx += p.x - last.x; GV.V.ty += p.y - last.y; gvDraw(); }
+      last = p;
+    } else if (ptrs.size === 2 && last && last.d) {
+      const st = pin(), f = clampS(GV.V.s * st.d / last.d) / GV.V.s;
+      GV.V.tx = st.cx - (last.cx - GV.V.tx) * f; GV.V.ty = st.cy - (last.cy - GV.V.ty) * f; GV.V.s *= f; last = st; gvDraw();
+    }
+  });
+  const end = e => {
+    if (!ptrs.has(e.pointerId)) return;
+    const wasOne = ptrs.size === 1; ptrs.delete(e.pointerId);
+    if (wasOne && tap && !tap.moved && !tap.multi && Date.now() - tap.t < 700 && e.type === 'pointerup') gvTap(tap.x, tap.y, e.pointerType);
+    if (ptrs.size === 0) tap = null;
+    last = ptrs.size === 1 ? [...ptrs.values()][0] : null;
+  };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { GV.mouse = pos(e); if (!ptrs.has(e.pointerId)) gvDraw(); } else GV.mouse = null; });
+  cv.addEventListener('pointerleave', () => { GV.mouse = null; gvDraw(); });
+  plEl('gv_canvas').style.cursor = 'none';
+  cv.addEventListener('wheel', e => {
+    e.preventDefault();
+    const p = pos(e), f = clampS(GV.V.s * Math.exp(-e.deltaY * 0.0016)) / GV.V.s;
+    GV.V.tx = p.x - (p.x - GV.V.tx) * f; GV.V.ty = p.y - (p.y - GV.V.ty) * f; GV.V.s *= f; gvDraw();
+  }, { passive: false });
+  if (window.ResizeObserver) new ResizeObserver(() => { if (gvOpenNow()) { gvResize(); gvDraw(); } }).observe(plEl('gv_cwrap'));
+})();
+
+/* ---------- 既存関数へのフック ---------- */
+(function plHooks() {
+  const _del = t1DeleteRow;
+  t1DeleteRow = function (id) {
+    if (PL.selId === id) { PL.selId = null; plUpdateSelInfo(); }
+    _del(id);
+  };
+  const _clr = t1ClearAll;
+  t1ClearAll = function () {
+    const before = t1Rows.length;
+    _clr();
+    if (before > 0 && t1Rows.length === 0) { PL.selId = null; PL.free = null; plUpdateSelInfo(); }
+  };
+})();
+
 (async function init() {
   // ---- IndexedDB初期化 ----
   try { await openDB(); } catch(e) { console.warn('DB open failed', e); }
@@ -2459,6 +4633,7 @@ window.addEventListener('pageshow', (e) => {
     } else {
       [['K1',0,0],['K2',0,0]].forEach(([n,x,y]) => t1AddRow(n,x,y,'R'));
       t2AddRow('K1','',0,0,0,'R'); t2AddRow('K2','',0,0,0,'R');
+      plOnRestore(null);
     }
   } else {
     openSiteModal();
