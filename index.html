@@ -987,7 +987,7 @@
   .pl-vtools button { flex: 0 0 auto; font-size: 13px; padding: 6px 9px; white-space: nowrap; }
   .pl-vinfo { padding: 3px 10px; font-size: 14px; }
   .pl-vinfo .pl-r2 { font-size: 15px; }
-  .pl-vhead { padding-top: 4px; padding-bottom: 4px; }
+  .pl-vhead { padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; }
   #gv_panel { max-height: 30vh; }
 </style>
 </head>
