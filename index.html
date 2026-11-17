@@ -902,6 +902,14 @@
     display: none; background: rgba(15,23,32,0.55);
   }
   .pl-modal.open { display: flex; }
+  /* 測定完了マーク（日別管理） */
+  #md-modal { align-items: flex-end; justify-content: center; z-index: 720; }
+  .md-sec { font-weight: 800; font-size: 16px; margin: 10px 0 6px; }
+  .md-row { display: flex; align-items: center; gap: 8px; padding: 8px 6px; border-bottom: 1px solid var(--border); }
+  .md-row .md-main { flex: 1; min-width: 0; line-height: 1.35; }
+  .md-row .md-main b { font-size: 17px; }
+  .md-row .md-main small { color: var(--text-muted); font-size: 13px; display: block; overflow-wrap: anywhere; }
+  .md-row .btn { min-height: 38px; padding: 4px 12px; font-size: 15px; }
 
   /* 読取結果の確認シート */
   #pl-review { align-items: flex-end; justify-content: center; z-index: 700; }
@@ -1453,6 +1461,16 @@
     <button onclick="plFitClick()">⤢ 全体</button>
     <button onclick="plCenterTarget()">🎯 選択点へ</button>
     <button id="pl_btn_names" class="on" onclick="plToggleNames()">Aa 名前</button>
+    <button onclick="mdSave()">💾 測定保存</button>
+    <button onclick="mdOpen()">📋 測定結果</button>
+  </div>
+</div>
+
+<!-- 測定完了マーク（日別保存・確認・削除） -->
+<div id="md-modal" class="pl-modal">
+  <div class="pl-sheet">
+    <div class="pl-sheet-h"><span>📋 測定結果（日別）</span><button class="btn btn-secondary" onclick="mdClose()">✕</button></div>
+    <div class="pl-sheet-b" id="md_body"></div>
   </div>
 </div>
 
@@ -2623,6 +2641,7 @@ async function siteDelete(id, e) {
   await saveSiteIndex(list.filter(s => s.id !== id));
   await dbDel(siteDataKey(id));
   await plIdbDel('plan_' + id);
+  await plIdbDel('meas_' + id);
   if (_currentSiteId === id) {
     await setCurrentSiteId(null);
     document.getElementById('header-site-name').textContent = '現場未選択';
@@ -3438,7 +3457,9 @@ function plOnRestore(meta) {
   PL.selId = null; PL.free = null; PL.T = null; PL.ranges = []; PL.rect = null;
   PL.stored = null; PL.loadedFor = null; PL.pdfDoc = null; PL.imgEl = null; PL.base = null; PL.kind = null; PL.name = '';
   plUpdateStatus(); plUpdateSelInfo();
+  mdReset();
   const sid = _currentSiteId;
+  if (sid) mdLoad(sid);
   if (sid) {
     plIdbGet('plan_' + sid).then(rec => {
       if (sid !== _currentSiteId || !rec) return;
@@ -3682,6 +3703,7 @@ async function plOpenViewer(startMode) {
   else if (!PL.T) plToast('図面と座標を結び付けるため、2点以上タップして位置合わせしてください', 3600);
 }
 function plCloseViewer() {
+  MD.rev = null; mdClose();
   plEl('pl-viewer').classList.remove('open');
   document.body.style.overflow = '';
   plUpdateStatus();
@@ -3756,6 +3778,7 @@ function plUpdateInfo() {
     else h += '<div class="pl-r2">距離 <b>' + fmtDist(c.dist) + '</b>　<b>' + plFmtDms(c) + '</b> <small>（右 ' + c.right.toFixed(4) + '° / 左 ' + c.left.toFixed(4) + '°）</small></div>';
     if (tg.free) h += '<div><small>X ' + tg.X.toFixed(3) + '　Y ' + tg.Y.toFixed(3) + (tg.snap ? '（吸着：厳密値）' : '（⚠ 吸着なし：タップ位置からの概算値）') + '</small> <button class="btn btn-primary" style="min-height:30px;padding:2px 12px;font-size:14px" onclick="plAddFree()">表に追加</button></div>';
   }
+  h += mdInfoLine();
   el.innerHTML = h;
 }
 function plAddFree() {
@@ -3795,6 +3818,16 @@ function plDraw0() {
   if (PL.T && PL.mode !== 'calib' && PL.mode !== 'range') {
     const mech = plMechPt(), vis = plVisPt(), tg = plTarget();
     const qm = plW2S(mech.x, mech.y), qv = plW2S(vis.x, vis.y);
+    // 測定完了マーク（オレンジ・透過30%）。結果確認中は保存済みの日のデータ、通常は本日分
+    const mdPts = MD.rev ? MD.rev.pts : (MD.cur ? MD.cur.pts : null);
+    if (mdPts) mdPts.forEach(m => {
+      const q = plW2S(m[1], m[2]);
+      if (q.x < -30 || q.y < -30 || q.x > PL.cw + 30 || q.y > PL.ch + 30) return;
+      const R = 24;   // ひし形の中心から頂点までの距離(px)
+      g.beginPath(); g.moveTo(q.x, q.y - R); g.lineTo(q.x + R, q.y); g.lineTo(q.x, q.y + R); g.lineTo(q.x - R, q.y); g.closePath();
+      g.fillStyle = 'rgba(249,115,22,0.30)'; g.fill();
+      g.lineWidth = 1.5; g.lineJoin = 'miter'; g.strokeStyle = 'rgba(234,88,12,0.65)'; g.stroke();
+    });
     // 登録済みの全測点
     plPoints().forEach(p => {
       const q = plW2S(p.x, p.y);
@@ -4057,14 +4090,18 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
   cv.addEventListener('pointerdown', e => {
     cv.setPointerCapture(e.pointerId);
     ptrs.set(e.pointerId, pos(e));
-    if (ptrs.size === 1) { const p = pos(e); tap = { x: p.x, y: p.y, t: Date.now(), moved: false, multi: false }; last = p; }
-    else { if (tap) tap.multi = true; last = ptrs.size === 2 ? pinchState() : null; }
+    if (ptrs.size === 1) {
+      const p = pos(e); tap = { x: p.x, y: p.y, t: Date.now(), moved: false, multi: false, long: false, lp: null }; last = p;
+      const tp = tap;   // 長押し(0.55秒)：測定完了マークの付け外し
+      tp.lp = setTimeout(() => { if (tap === tp && !tp.moved && !tp.multi && ptrs.size === 1 && mdLongPress(tp.x, tp.y)) tp.long = true; }, 550);
+    }
+    else { if (tap) { tap.multi = true; clearTimeout(tap.lp); } last = ptrs.size === 2 ? pinchState() : null; }
   });
   cv.addEventListener('pointermove', e => {
     if (!ptrs.has(e.pointerId)) return;
     const p = pos(e); ptrs.set(e.pointerId, p);
     if (ptrs.size === 1) {
-      if (tap && Math.hypot(p.x - tap.x, p.y - tap.y) > 8) tap.moved = true;
+      if (tap && Math.hypot(p.x - tap.x, p.y - tap.y) > 8) { tap.moved = true; clearTimeout(tap.lp); }
       if (tap && tap.moved && last) {
         if (PL.mode === 'range' && PL.rangeTool === 'draw') {
           const a = plToPg(tap.x, tap.y), b = plToPg(p.x, p.y);
@@ -4082,13 +4119,15 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
     if (!ptrs.has(e.pointerId)) return;
     const wasOne = ptrs.size === 1;
     ptrs.delete(e.pointerId);
-    if (wasOne && tap && !tap.moved && !tap.multi && Date.now() - tap.t < 700 && e.type === 'pointerup') plOnTap(tap.x, tap.y, e.pointerType);
+    if (tap) clearTimeout(tap.lp);
+    if (wasOne && tap && !tap.moved && !tap.multi && !tap.long && Date.now() - tap.t < 700 && e.type === 'pointerup') plOnTap(tap.x, tap.y, e.pointerType);
     if (PL.mode === 'range' && wasOne && tap && tap.moved && PL.rect) plUpdateInfo();
     if (ptrs.size === 0) tap = null;
     last = ptrs.size === 1 ? [...ptrs.values()][0] : null;
   };
   cv.addEventListener('pointerup', end);
   cv.addEventListener('pointercancel', end);
+  cv.addEventListener('contextmenu', e => e.preventDefault());   // 長押しのメニュー抑止
   cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { PL.mouse = pos(e); if (PL.mode === 'calib' && !ptrs.has(e.pointerId)) plDraw(); } else PL.mouse = null; });
   cv.addEventListener('pointerleave', () => { PL.mouse = null; if (PL.mode === 'calib') plDraw(); });
   cv.addEventListener('wheel', e => {
@@ -4100,6 +4139,122 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
   window.addEventListener('orientationchange', () => setTimeout(() => { if (plViewerOpen()) { plResize(); plFitView(); plDraw(); } }, 300));
   document.addEventListener('keydown', e => { if (e.key === 'Escape' && plViewerOpen()) plCloseViewer(); });
 })();
+
+/* =====================================================
+   測定完了マーク（日別管理）
+   ・図面上の点を長押し → オレンジ(透過30%)の丸で「測定完了」を付け外し
+   ・「💾 測定保存」で当日分を保存 →「📋 測定結果」で日別に確認・削除
+   ・軽量化：画像は保存せず、点の [名前, X, Y, 機械点名] だけを別キー(meas_現場ID)に保存
+     （1点あたり約30バイト。図面や通常の自動保存データには含めない）
+   ===================================================== */
+var MD = { cur: null, days: [], rev: null };   // cur:{date,saved,pts:[[name,X,Y,mech]]}  days:[{date,savedAt,pts}]
+function mdReset() { MD.cur = null; MD.days = []; MD.rev = null; }
+function mdKey(sid) { return 'meas_' + sid; }
+function mdToday() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function mdR4(v) { return Math.round(v * 10000) / 10000; }
+function mdPersist() {
+  if (!_currentSiteId) return Promise.resolve();
+  return plIdbPut(mdKey(_currentSiteId), { v: 1, cur: MD.cur, days: MD.days }).catch(e => console.warn('meas save error', e));
+}
+async function mdLoad(sid) {
+  try {
+    const rec = await plIdbGet(mdKey(sid));
+    if (sid !== _currentSiteId) return;
+    MD.cur = (rec && rec.cur) || null; MD.days = (rec && rec.days) || [];
+    // 日付が変わっていたら、前日までの未保存分は自動で日別データへ退避して、新しい日として始める
+    if (MD.cur && MD.cur.date !== mdToday()) {
+      if (MD.cur.pts.length && !MD.cur.saved) mdCommit(MD.cur);
+      MD.cur = null; mdPersist();
+    }
+    if (plViewerOpen()) { plUpdateInfo(); plDraw(); }
+  } catch (e) {}
+}
+/** 日別データへ書き込み（同日があれば、autoMergeなら統合、そうでなければ置換） */
+function mdCommit(c, merge) {
+  const i = MD.days.findIndex(d => d.date === c.date);
+  let pts = c.pts.map(p => p.slice());
+  if (i >= 0 && merge) {
+    MD.days[i].pts.forEach(o => { if (!pts.some(p => Math.abs(p[1] - o[1]) < 0.0005 && Math.abs(p[2] - o[2]) < 0.0005)) pts.push(o); });
+  }
+  const rec = { date: c.date, savedAt: Date.now(), pts };
+  if (i >= 0) MD.days[i] = rec; else MD.days.push(rec);
+  MD.days.sort((a, b) => a.date < b.date ? 1 : -1);
+}
+/** 日付が変わっていたら本日分として新しく始める */
+function mdRollover() {
+  const t = mdToday();
+  if (MD.cur && MD.cur.date !== t) {
+    if (MD.cur.pts.length && !MD.cur.saved) mdCommit(MD.cur, true);
+    MD.cur = null;
+  }
+  if (!MD.cur) MD.cur = { date: t, saved: false, pts: [] };
+}
+/** 長押し：近くの点の「測定完了」を付け外し。処理したら true */
+function mdLongPress(sx, sy) {
+  if (!PL.T || PL.mode === 'calib' || PL.mode === 'range') return false;
+  if (MD.rev) { plToast('結果確認中は変更できません（「確認を終了」を押してください）', 2800); return true; }
+  const sn = plSnapAt(sx, sy, 36);
+  if (!sn) { plToast('近くに点がありません。点の円の中を長押ししてください', 2400); return true; }
+  mdRollover();
+  const c = MD.cur, i = c.pts.findIndex(p => Math.abs(p[1] - sn.x) < 0.0005 && Math.abs(p[2] - sn.y) < 0.0005);
+  if (i >= 0) { c.pts.splice(i, 1); plToast('測定完了を解除：' + sn.name, 1600); }
+  else { c.pts.push([sn.name, mdR4(sn.x), mdR4(sn.y), plMechPt().name || '']); plToast('✅ 測定完了：' + sn.name + '（' + c.pts.length + '点）', 1600); }
+  c.saved = false;
+  if (navigator.vibrate) { try { navigator.vibrate(30); } catch (e) {} }
+  mdPersist(); plUpdateInfo(); plDraw();
+  return true;
+}
+function mdInfoLine() {
+  if (MD.rev) return '<div><small>📋 結果確認中：' + plEsc(MD.rev.date) + '（' + MD.rev.pts.length + '点）</small> <button class="btn btn-primary" style="min-height:30px;padding:2px 12px;font-size:14px" onclick="mdEndRev()">確認を終了</button></div>';
+  const c = MD.cur;
+  if (c && c.pts.length) return '<div><small>🟠 測定完了 ' + c.pts.length + '点（' + plEsc(c.date) + '・' + (c.saved ? '保存済み' : '未保存') + '）</small></div>';
+  return '<div><small>点を長押し → 測定完了マーク（オレンジ）</small></div>';
+}
+async function mdSave() {
+  if (!_currentSiteId) { plToast('現場が未選択のため保存できません'); return; }
+  const c = MD.cur;
+  if (!c || !c.pts.length) { plToast('測定完了の点がありません（点を長押しでマーク）', 2800); return; }
+  if (MD.days.some(d => d.date === c.date) && !confirm(c.date + ' の保存データがあります。上書きしますか？')) return;
+  mdCommit(c); c.saved = true;
+  await mdPersist();
+  plUpdateInfo();
+  plToast('💾 ' + c.date + ' の測定結果（' + c.pts.length + '点）を保存しました', 2800);
+  if (plEl('md-modal').classList.contains('open')) mdRender();
+}
+function mdOpen() { mdRender(); plEl('md-modal').classList.add('open'); }
+function mdClose() { const m = plEl('md-modal'); if (m) m.classList.remove('open'); }
+function mdRender() {
+  const c = MD.cur, n = c ? c.pts.length : 0;
+  let h = '<div class="md-sec">作業中（本日分）</div><div class="md-row"><div class="md-main">';
+  h += n ? '<b>' + plEsc(c.date) + '　' + n + '点</b><small>' + (c.saved ? '保存済み' : '未保存') + '</small>' : '<small>測定完了の点はありません。図面上の点を長押しするとマークされます。</small>';
+  h += '</div>' + (n ? '<button class="btn btn-primary" onclick="mdSave()">保存</button><button class="btn btn-secondary" onclick="mdClearCur()">クリア</button>' : '') + '</div>';
+  h += '<div class="md-sec">保存済み（' + MD.days.length + '日分）</div>';
+  if (!MD.days.length) h += '<div class="md-row"><div class="md-main"><small>保存済みの測定結果はありません。</small></div></div>';
+  MD.days.forEach(d => {
+    const ms = [...new Set(d.pts.map(p => p[3]).filter(Boolean))];
+    const kb = (JSON.stringify(d).length / 1024).toFixed(1);
+    h += '<div class="md-row"><div class="md-main"><b>' + plEsc(d.date) + '　' + d.pts.length + '点</b><small>機械点：' + (ms.length ? plEsc(ms.join('、')) : '—') + '　／　約' + kb + 'KB</small></div>' +
+         '<button class="btn btn-primary" onclick="mdView(\'' + d.date + '\')">確認</button><button class="btn btn-secondary" onclick="mdDel(\'' + d.date + '\')">削除</button></div>';
+  });
+  plEl('md_body').innerHTML = h;
+}
+function mdView(date) {
+  const d = MD.days.find(x => x.date === date); if (!d) return;
+  MD.rev = d; mdClose(); plFitView(); plUpdateInfo(); plDraw();
+  plToast(date + ' の測定結果を表示しています', 2400);
+}
+function mdEndRev() { MD.rev = null; plUpdateInfo(); plDraw(); }
+async function mdDel(date) {
+  if (!confirm(date + ' の測定結果を削除しますか？\n元に戻せません。')) return;
+  MD.days = MD.days.filter(d => d.date !== date);
+  if (MD.rev && MD.rev.date === date) MD.rev = null;
+  await mdPersist(); mdRender(); plUpdateInfo(); plDraw();
+}
+function mdClearCur() {
+  if (!MD.cur || !MD.cur.pts.length) return;
+  if (!confirm('本日の測定完了マーク（' + MD.cur.pts.length + '点）をクリアしますか？' + (MD.cur.saved ? '\n※保存済みの結果は残ります。' : '\n※未保存のため元に戻せません。'))) return;
+  MD.cur = null; mdPersist(); mdRender(); plUpdateInfo(); plDraw();
+}
 
 /* ===== JWW直読み: 通り芯の厳密な測点化 ===== */
 var JW = { ents: null, info: null, lines: [], pts: [], fit: null, groups: [] };
@@ -4120,22 +4275,38 @@ function jwParse(buf) {
   const u2 = () => { const v = dv.getUint16(p, true); p += 2; return v; };
   const str = () => { let l = u8[p++]; if (l === 255) { l = u2(); } const s = sj.decode(u8.subarray(p, p + l)); p += l; return s; };
   const ents = []; let warn = '';
+  // ヘッダーの「レイヤグループ別 縮尺」(1/250なら250)。JWWの座標は用紙上mm、実寸[m] = 座標 × 縮尺 / 1000
+  let scales = [];
+  try {
+    let q = 12; let l = u8[q++]; if (l === 255) { l = dv.getUint16(q, true); q += 2; } q += l;   // メモ
+    q += 8;   // 用紙サイズ・書込レイヤグループ
+    for (let g = 0; g < 16; g++) { const sc = dv.getFloat64(q + 8, true); scales.push(isFinite(sc) && sc > 0 && sc < 1e6 ? sc : 0); q += 20 + 16 * 8; }
+  } catch (e) { scales = []; }
   for (let i = 0; i < n; i++) {
     const w = u2(); let cls;
     if (w === 0xFFFF) { u2(); const ln = u2(); cls = String.fromCharCode(...u8.slice(p, p + ln)); p += ln; cmap[mc++] = cls; }
     else if (w & 0x8000) cls = cmap[w & 0x7fff];
     else { warn = '図形の途中で解析を終了しました'; break; }
     mc++;
-    if (['CDataSen', 'CDataEnko', 'CDataTen', 'CDataMoji'].indexOf(cls) < 0) { warn = '未対応の図形（' + cls + '）が含まれるため、' + i + '/' + n + '個目までを解析しました'; break; }
-    u4(); const style = u8[p++]; const pen = u2(); u2(); const layer = u2(), glayer = u2(); u2();
-    const e = { cls, style, pen, layer, glayer };
+    if (['CDataSen', 'CDataEnko', 'CDataTen', 'CDataMoji', 'CDataSunpou'].indexOf(cls) < 0) { warn = '未対応の図形（' + cls + '）が含まれるため、' + i + '/' + n + '個目までを解析しました'; break; }
+    const base = () => { u4(); const style = u8[p++]; const pen = u2(); u2(); const layer = u2(), glayer = u2(); u2(); return { cls, style, pen, layer, glayer }; };
+    const e = base();
     if (cls === 'CDataSen') e.p = [f8(), f8(), f8(), f8()];
     else if (cls === 'CDataEnko') { e.c = [f8(), f8(), f8(), f8(), f8(), f8(), f8()]; u4(); }
     else if (cls === 'CDataTen') { e.p = [f8(), f8()]; u4(); }
+    else if (cls === 'CDataSunpou') {
+      // 寸法図形：寸法線(線)＋寸法値(文字)＋Sxfフラグ(2)＋補助線2本(線)＋点4個。構造を読み飛ばすだけで、図形としては採用しない
+      base(); p += 32;                                   // 寸法線
+      base(); p += 32 + 4 + 32; str(); str();            // 寸法値（文字）
+      u2();                                              // Sxfモード
+      base(); p += 32; base(); p += 32;                  // 補助線1・2
+      for (let k = 0; k < 4; k++) { base(); p += 16 + 4; }   // 点×4
+      continue;
+    }
     else { e.p = [f8(), f8(), f8(), f8()]; u4(); f8(); f8(); f8(); f8(); str(); e.text = str(); }
     ents.push(e);
   }
-  return { ents, total: n, warn, ver };
+  return { ents, total: n, warn, ver, scales };
 }
 /** 相似変換 q = a*p + b （複素数 z=x+iy。Q=Y(東)+iX(北)） */
 function jwSim(P, Q) {
@@ -4149,7 +4320,10 @@ function jwSim(P, Q) {
 }
 function jwApply(T, x, y) { return [T.ar * x - T.ai * y + T.br, T.ai * x + T.ar * y + T.bi]; }  // [Y, X]
 /** 表の境界点（名前→X,Y）と、図面上の点図形（名前の文字の近く）を対応付け、位置合わせ */
-function jwCalibrate(ents, table) {
+function jwCalibrate(ents, table, scales) {
+  // 許容する換算率：1（座標=実寸m）、0.001（座標=実寸mm）、図面の縮尺 S/1000（用紙mm→実寸m。1/250なら0.25）
+  const facs = [1, 0.001]; (scales || []).forEach(sc => { if (sc > 0) { const f = sc / 1000; if (!facs.some(x => Math.abs(x / f - 1) < 1e-9)) facs.push(f); } });
+  const okScale = sc => facs.some(f => Math.abs(sc / f - 1) < 0.02);
   const tens = ents.filter(e => e.cls === 'CDataTen').map(e => e.p);
   const tb = {}; table.forEach(t => { tb[t.name] = t; });
   const cand = {};   // name -> [[tenIdx]]
@@ -4169,7 +4343,7 @@ function jwCalibrate(ents, table) {
     cand[names[a]].forEach(ia => cand[names[b]].forEach(ib => {
       const dx = tens[ib][0] - tens[ia][0], dy = tens[ib][1] - tens[ia][1], Dp = Math.hypot(dx, dy); if (Dp < 1e-9) return;
       const T = jwSim([tens[ia], tens[ib]], [qa, qb]); if (!T) return;
-      const sc = Math.hypot(T.ar, T.ai); if (Math.abs(sc - 1) > 0.02 && Math.abs(sc - 0.001) > 0.0002) return;
+      const sc = Math.hypot(T.ar, T.ai); if (!okScale(sc)) return;
       const m = inl(T, Math.max(0.05, 0.001 * Dq)); if (m.length > bestM.length) { bestM = m; bestT = T; }
     }));
   }
@@ -4220,7 +4394,7 @@ async function jwOnFile(f) {
   try {
     plBusy('JWWを解析中…');
     const r = jwParse(await f.arrayBuffer());
-    JW.ents = r.ents; JW.info = r; JW.cal = jwCalibrate(r.ents, tbl); JW.groups = jwGroups(r.ents); JW.gi = 0;
+    JW.ents = r.ents; JW.info = r; JW.cal = jwCalibrate(r.ents, tbl, r.scales); JW.groups = jwGroups(r.ents); JW.gi = 0;
     plBusyOff();
     jwRender(); plEl('jw-modal').classList.add('open');
   } catch (e) { plBusyOff(); plToast('JWWを読み込めませんでした：' + e.message, 4500); }
@@ -4233,7 +4407,11 @@ function jwRender() {
   if (c.err) { note.innerHTML = h + '<b style="color:#b91c1c">位置合わせ不可：' + plEsc(c.err) + '</b>'; body.innerHTML = ''; JW.pts = []; return; }
   const mm = c.max * 1000, ok = mm < 0.5, mid = mm < 5;
   h += '位置合わせ：境界点 ' + c.n + '点一致／縮尺 ' + c.scale.toFixed(6) + '／回転 ' + c.rot.toFixed(4) + '°<br>最大残差 <b style="color:' + (ok ? '#047857' : mid ? '#b45309' : '#b91c1c') + '">' + mm.toFixed(3) + ' mm</b>（RMS ' + (c.rms * 1000).toFixed(3) + ' mm）' + (ok ? ' ✅ 誤差ほぼ0' : mid ? ' ⚠ 図面の境界点が座標とわずかにずれています' : ' ❌ 図面が座標どおりでない可能性。取込は推奨しません');
-  if (Math.abs(c.scale - 1) > 1e-3) h += '<br><b style="color:#b91c1c">⚠ 縮尺が1:1ではありません。単位を確認してください</b>';
+  if (Math.abs(c.scale - 1) > 1e-3) {
+    const isGrp = (JW.info.scales || []).some(sc => sc > 0 && Math.abs(c.scale / (sc / 1000) - 1) < 0.02);
+    if (isGrp) h += '<br><small>図面縮尺 1/' + Math.round(c.scale * 1000) + '（用紙mm→実寸mに換算して位置合わせ）</small>';
+    else h += '<br><b style="color:#b91c1c">⚠ 縮尺が1:1ではありません。単位を確認してください</b>';
+  }
   if (!g.length) { note.innerHTML = h + '<br><b style="color:#b91c1c">通り芯（レイヤA-A／赤の一点鎖線）が見つかりません</b>'; body.innerHTML = ''; JW.pts = []; return; }
   const gr = g[JW.gi] || g[0], it = jwIntersections(gr.lines, c.T); JW.pts = it.pts.map(p => ({ ...p, chk: true })); JWSNAP = it.pts.map(p => ({ name: p.name, X: p.X, Y: p.Y })); autoSave();
   note.innerHTML = h + '<br>通り芯：<select onchange="jwSel(this.value)">' + g.map((x, i) => '<option value="' + i + '"' + (i === JW.gi ? ' selected' : '') + '>' + plEsc(x.label) + '（' + x.lines.length + '本）</option>').join('') + '</select> → 平行な線の族 ' + it.fam + '／交点 ' + it.pts.length + '点' + (it.fam < 2 ? '<br><b style="color:#b91c1c">直交する2方向の通り芯が必要です</b>' : '');
