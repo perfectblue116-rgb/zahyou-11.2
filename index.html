@@ -953,6 +953,12 @@
   .pl-vinfo small { color: var(--text-muted); font-size: 13px; }
   .pl-cwrap { flex: 1; position: relative; overflow: hidden; background: #dfe4ea; touch-action: none; min-height: 120px; }
   #pl_canvas { position: absolute; left: 0; top: 0; touch-action: none; display: block; }
+  /* 長押しで文字・画像の選択(青)やコールアウトが出ないようにする（iPad対策） */
+  #pl-viewer, .pl-cwrap, .pl-cwrap canvas {
+    -webkit-user-select: none; user-select: none;
+    -webkit-touch-callout: none;
+  }
+  #pl-viewer input, #pl-viewer textarea, #pl-viewer select { -webkit-user-select: text; user-select: text; }
   .pl-vtools { display: flex; flex-wrap: wrap; gap: 6px; padding: 8px 10px; padding-bottom: calc(8px + env(safe-area-inset-bottom));
     background: var(--surface); border-top: 1px solid var(--border); }
   .pl-vtools button { flex: 1 1 auto; font-family: var(--sans); font-size: 14px; font-weight: 700; padding: 8px 8px;
@@ -1461,6 +1467,7 @@
     <button onclick="plFitClick()">⤢ 全体</button>
     <button onclick="plCenterTarget()">🎯 選択点へ</button>
     <button id="pl_btn_names" class="on" onclick="plToggleNames()">Aa 名前</button>
+    <button id="md_btn_txt" class="on" onclick="mdToggleTxt()">済 表示</button>
     <button onclick="mdSave()">💾 測定保存</button>
     <button onclick="mdOpen()">📋 測定結果</button>
   </div>
@@ -3827,6 +3834,12 @@ function plDraw0() {
       g.beginPath(); g.moveTo(q.x, q.y - R); g.lineTo(q.x + R, q.y); g.lineTo(q.x, q.y + R); g.lineTo(q.x - R, q.y); g.closePath();
       g.fillStyle = 'rgba(249,115,22,0.30)'; g.fill();
       g.lineWidth = 1.5; g.lineJoin = 'miter'; g.strokeStyle = 'rgba(234,88,12,0.65)'; g.stroke();
+      if (MD.txt) {   // 「測定済」の文字（ひし形の下）。白フチ付きで図面の上でも読める
+        g.font = 'bold 13px sans-serif'; g.textAlign = 'center'; g.textBaseline = 'top';
+        g.lineWidth = 3; g.strokeStyle = 'rgba(255,255,255,0.9)'; g.strokeText('測定済', q.x, q.y + R + 2);
+        g.fillStyle = '#c2410c'; g.fillText('測定済', q.x, q.y + R + 2);
+        g.textAlign = 'start'; g.textBaseline = 'alphabetic';
+      }
     });
     // 登録済みの全測点
     plPoints().forEach(p => {
@@ -4093,7 +4106,7 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
     if (ptrs.size === 1) {
       const p = pos(e); tap = { x: p.x, y: p.y, t: Date.now(), moved: false, multi: false, long: false, lp: null }; last = p;
       const tp = tap;   // 長押し(0.55秒)：測定完了マークの付け外し
-      tp.lp = setTimeout(() => { if (tap === tp && !tp.moved && !tp.multi && ptrs.size === 1 && mdLongPress(tp.x, tp.y)) tp.long = true; }, 550);
+      tp.lp = setTimeout(() => { if (tap === tp && !tp.moved && !tp.multi && ptrs.size === 1 && mdLongPress(tp.x, tp.y)) { tp.long = true; try { const sl = window.getSelection(); if (sl) sl.removeAllRanges(); } catch (e) {} } }, 550);
     }
     else { if (tap) { tap.multi = true; clearTimeout(tap.lp); } last = ptrs.size === 2 ? pinchState() : null; }
   });
@@ -4128,6 +4141,7 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
   cv.addEventListener('pointerup', end);
   cv.addEventListener('pointercancel', end);
   cv.addEventListener('contextmenu', e => e.preventDefault());   // 長押しのメニュー抑止
+  ['selectstart', 'dragstart'].forEach(ev => { cv.addEventListener(ev, e => e.preventDefault()); cv.parentNode.addEventListener(ev, e => e.preventDefault()); });
   cv.addEventListener('pointermove', e => { if (e.pointerType === 'mouse') { PL.mouse = pos(e); if (PL.mode === 'calib' && !ptrs.has(e.pointerId)) plDraw(); } else PL.mouse = null; });
   cv.addEventListener('pointerleave', () => { PL.mouse = null; if (PL.mode === 'calib') plDraw(); });
   cv.addEventListener('wheel', e => {
@@ -4147,7 +4161,7 @@ function plYupChange(v) { PL.yUp = (v === '1'); plRecalcT(true); plCalRefresh();
    ・軽量化：画像は保存せず、点の [名前, X, Y, 機械点名] だけを別キー(meas_現場ID)に保存
      （1点あたり約30バイト。図面や通常の自動保存データには含めない）
    ===================================================== */
-var MD = { cur: null, days: [], rev: null };   // cur:{date,saved,pts:[[name,X,Y,mech]]}  days:[{date,savedAt,pts}]
+var MD = { cur: null, days: [], rev: null, txt: true };   // txt: 「測定済」文字の表示ON/OFF   // cur:{date,saved,pts:[[name,X,Y,mech]]}  days:[{date,savedAt,pts}]
 function mdReset() { MD.cur = null; MD.days = []; MD.rev = null; }
 function mdKey(sid) { return 'meas_' + sid; }
 function mdToday() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
@@ -4221,6 +4235,7 @@ async function mdSave() {
   plToast('💾 ' + c.date + ' の測定結果（' + c.pts.length + '点）を保存しました', 2800);
   if (plEl('md-modal').classList.contains('open')) mdRender();
 }
+function mdToggleTxt() { MD.txt = !MD.txt; plEl('md_btn_txt').classList.toggle('on', MD.txt); plDraw(); }
 function mdOpen() { mdRender(); plEl('md-modal').classList.add('open'); }
 function mdClose() { const m = plEl('md-modal'); if (m) m.classList.remove('open'); }
 function mdRender() {
