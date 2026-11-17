@@ -1003,6 +1003,21 @@
   .pl-vinfo .pl-r2 { font-size: 15px; }
   .pl-vhead { padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; }
   #gv_panel { max-height: 30vh; }
+
+  /* ===== エクスポート／バックアップ ===== */
+  .site-backup { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface2); padding: 10px 14px; }
+  .site-backup-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
+  .site-backup-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+  .site-backup-btns .btn { flex: 1 1 auto; min-height: 42px; font-size: 14px; }
+  .site-backup-note { font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5; }
+  .site-export-btn {
+    background: transparent; border: none; color: var(--text-muted);
+    font-size: 20px; cursor: pointer; padding: 6px; border-radius: 4px;
+    transition: color 0.1s, background 0.1s; flex-shrink: 0; line-height: 1;
+    min-width: 36px; min-height: 36px; display: flex; align-items: center; justify-content: center;
+  }
+  .site-export-btn:active { color: var(--accent); background: var(--accent-dim); }
+  #pl-toast, #pl-busy { z-index: 20000 !important; }
 </style>
 </head>
 <body>
@@ -1039,6 +1054,16 @@
         上のフォームから作成してください
       </div>
     </div>
+  <div class="site-backup">
+    <div class="site-backup-title">💾 データの保存（エクスポート）・復元</div>
+    <div class="site-backup-btns">
+      <button class="btn btn-primary" onclick="backupExportCurrent()">📤 使用中の現場を保存</button>
+      <button class="btn btn-secondary" onclick="backupExportAll()">📤 全現場を保存</button>
+      <button class="btn btn-secondary" onclick="backupPickImport()">📥 読み込み</button>
+    </div>
+    <div class="site-backup-note">入力内容・図面・位置合わせ・測定結果をファイル(.json)に保存します。各現場右の📤からも個別に保存できます。</div>
+    <input type="file" id="backup_file" accept=".json,application/json" style="display:none" onchange="backupImport(this.files[0])">
+  </div>
   </div>
 </div>
 
@@ -1156,6 +1181,7 @@
       <button class="btn btn-secondary" onclick="t1ClearAll()">クリア</button>
       <div class="ml-auto flex-row">
         <button class="btn btn-secondary" onclick="t1ExportExcel()">Excel</button>
+        <button class="btn btn-secondary" onclick="t1ExportCSV()">CSV</button>
         <button class="btn btn-secondary" onclick="t1ExportTSV()">コピー</button>
       </div>
     </div>
@@ -1266,8 +1292,9 @@
       <button class="btn btn-primary" onclick="t2AddRow()">＋ 行追加</button>
       <button class="btn btn-secondary" onclick="t2AddRows10()">10行追加</button>
       <button class="btn btn-secondary" onclick="t2ClearAll()">クリア</button>
-      <div class="ml-auto">
+      <div class="ml-auto flex-row">
         <button class="btn btn-secondary" onclick="t2ExportExcel()">Excel</button>
+        <button class="btn btn-secondary" onclick="t2ExportCSV()">CSV</button>
       </div>
     </div>
     <div class="tbl-wrapper">
@@ -1299,39 +1326,61 @@
     <div class="section-header">📖 操作方法</div>
     <div class="section-body">
       <div class="help-box">
+        <p><strong>【はじめに：現場の選択と自動保存】</strong></p>
+        <p>1. 画面右上の現場名（初期は「現場未選択」）をタップすると、現場の作成・切替・削除ができます。最初に現場を作成してください。<b>現場が未選択のままだと、入力内容や図面は保存されません。</b></p>
+        <p>2. 入力内容・登録した図面・位置合わせ・測定結果は、<b>現場ごとに自動保存</b>されます（保存のたびに右上の「保存」が点灯）。データはこの端末のブラウザ内に保存されます。</p>
+        <p>3. 端末の変更・ブラウザデータの消去・現場の削除に備え、<b>エクスポート（データの保存）</b>で定期的にファイルへ保存してください（下の【データの保存（エクスポート）・復元】参照）。</p>
+        <br>
         <p><strong>【座標 → 距離・角度】タブ</strong></p>
-        <p>1. 「基準点設定」で機械点のポイント名とX・Y座標を入力。</p>
-        <p>2. 視準点のポイント名とX・Y座標を入力。基準角度が自動設定されます。</p>
-        <p>3. 機械点・視準点のポイント名を変更すると、計算点一覧の同名行のXY座標が自動反映されます。</p>
-        <p>4. 「計算点一覧」に各測点のポイント名・X座標・Y座標を入力すると、距離・測量角度が自動計算されます。</p>
-        <p>5. 測点名はクリックして直接編集・コピー＆ペーストが可能です。</p>
-        <p>6. 向き（右／左）は、機械を視準点に向けた状態から測点方向へ<b>どちらに回せばよいか</b>を表します（右=時計回り、左=反時計回り）。右旋・左旋のうち小さい方が自動表示され、タップで手動切替も可能です。</p>
+        <p>1. 「基準点設定」…機械点・視準点の<b>ポイント名は▼をタップして、計算点一覧の測点から選びます</b>（直接入力はできません）。選ぶとその測点のX・Y座標が自動で入り、視準点の方向が基準角度（0°）になります。X・Y座標は手入力もできます。</p>
+        <p>2. 「計算点一覧」に測点名・X座標・Y座標を入力すると、距離・測量角度（度°分′秒″）が自動計算されます。「＋ 行追加」「10行追加」で行を増やし、各行の✕で行を削除、「クリア」で全行を削除します。</p>
+        <p>3. 座標入力のコツ：小数点なしで4桁以上の整数を入力して欄の外をタップすると、<b>末尾3桁の前に小数点が自動で入ります</b>（例：6512 → 6.512、19958 → 19.958）。空欄は0に戻ります。マイナスも入力できます。</p>
+        <p>4. 測点名：行番号（#）または測点名をタップすると、その測点が選択されます（図面上で緑丸表示）。選択中の測点名をもう一度タップすると、名前の編集・コピー＆ペーストができます。機械点・視準点と同じ名前の行のX・Yを変更すると、基準点設定にも自動で反映されます。</p>
+        <p>5. 向き（右／左）は、機械を視準点に向けた状態から測点方向へ<b>どちらに回せばよいか</b>を表します（右=時計回り、左=反時計回り）。右旋・左旋のうち小さい方が自動表示され、バッジをタップすると手動で切り替えられます（手動で切り替えた行は自動判定より優先されます）。</p>
+        <p>6. 一覧の下に、有効点数・最小距離・最大距離が表示されます。</p>
         <br>
         <p><strong>【距離・角度 → 座標】タブ</strong></p>
-        <p>1. 機械点・視準点を設定（座標入力）。</p>
-        <p>2. 各測点の距離・角度（度・分・秒）を入力するとX・Y座標が自動計算されます。</p>
-        <p>3. 向き「左」=視準点から左（反時計回り）に回した角度、「右」=視準点から右（時計回り）に回した角度。</p>
+        <p>1. 「基準点設定」は上と同じです。ポイント名は▼から選び（候補は「座標 → 距離・角度」タブの計算点一覧の測点）、X・Y座標が自動で入ります。</p>
+        <p>2. 「計算点一覧」に測点名・距離・角度（度・分・秒）・向きを入力すると、X座標・Y座標が自動計算されます。</p>
+        <p>3. 向き「左」=視準点から左（反時計回り）に回した角度、「右」=視準点から右（時計回り）に回した角度です。バッジをタップして切り替えます。</p>
         <br>
-        <p><strong>【距離表示について】</strong></p>
-        <p>距離は小数点以下3桁（0.000）で表示。4桁目以降は切り上げ処理しています。</p>
+        <p><strong>【数値の表示について】</strong></p>
+        <p>・距離・座標は小数点以下3桁（0.000）で表示します（4桁目を四捨五入）。</p>
+        <p>・測量角度（右回り・左回り）は小数点以下4桁で表示します。</p>
+        <p>・度°分′秒″は秒未満を切り捨てて表示します（JWW準拠）。</p>
         <br>
         <p><strong>【測量角度の定義】</strong></p>
         <p>・測量角度（右回り）: 視準点方向を0°として、右回り（時計回り）で表した角度</p>
         <p>・測量角度（左回り）: 視準点方向を0°として、左回り（反時計回り）で表した角度</p>
         <p>・度°分′秒″: 向き（右／左）に応じた角度の60進数表記</p>
         <br>
+        <p><strong>【データの保存（エクスポート）・復元】</strong></p>
+        <p>1. <b>計算結果の書き出し</b>：各タブの計算点一覧の「Excel」（.xlsx）・「CSV」で、表の内容をファイルに保存できます。「座標 → 距離・角度」タブの「コピー」は、表の内容をタブ区切りでクリップボードにコピーします。ファイル名は「現場名_項目名_日付」になります。</p>
+        <p>2. <b>現場データのバックアップ</b>：画面右上の現場名をタップ →「📤 使用中の現場を保存」「📤 全現場を保存」、または各現場の右にある📤をタップすると、<b>入力内容・登録した図面（PDF/画像）・位置合わせ・測定結果</b>を1つのファイル（.json）に保存します。</p>
+        <p>3. <b>復元</b>：現場の画面で「📥 読み込み」からバックアップ（.json）を選ぶと、現場が一覧に追加されます。同じ名前の現場がある場合は上書きせず、「（取込日付）」を付けた別の現場として追加します。端末の変更時にもこの方法でデータを移せます。</p>
+        <p>4. <b>測定結果の書き出し</b>：図面画面の「📋 測定結果」で、日別の「Excel」または「📤 全日分Excel」を押すと、測定完了の点（測点名・X・Y・機械点）をExcelに保存できます（保存済みの分が対象です）。</p>
+        <p>5. iPhone/iPadのホーム画面アプリでは、保存時に共有メニューが開きます。「“ファイル”に保存」などを選んでください。</p>
+        <p>6. <b>座標データのインポート</b>：画面下部の「座標データインポート」に「ポイント名, X座標, Y座標」を1行1点（カンマまたはタブ区切り）で貼り付け、「インポート実行」で計算点一覧に追加します。</p>
+        <br>
         <p><strong>【図面（PDF）・座標の自動読取】</strong></p>
-        <p>1. 「座標読取（範囲指定）」…登録した図面が開きます。図面を拡大し、座標が書いてある部分を指でなぞって範囲指定し「この範囲を登録」。他にも座標があれば続けて範囲指定→登録を繰り返し、最後に「座標変換開始」を押すと「ポイント名 X Y」を自動で読み取り、確認画面を経て計算点一覧に取り込みます。PDFに文字情報がある範囲は誤読なし、無い範囲はOCR（読み違いの可能性あり）です。確認画面で必ず数値を見比べてください。</p>
-        <p>2. 「図面PDF/画像を登録」…現場ごとに図面を保存します。「図面を表示」で図面を開き、<b>📐位置合わせ</b>で座標が分かっている測点を2点以上タップすると、図面と座標が結び付きます（3点目で誤差を確認できます）。</p>
-        <p>3. 図面上では 🔴機械点・🔵視準点・🟢選択した測点 が半透明の丸で表示されます。計算点一覧の測点名（または#）をタップして測点を選んでから「図面を表示」を押すと、その測点が緑丸で表示されます。選択中の測点名をもう一度タップすると名前を編集できます。</p>
-        <p>4. 図面上でも、モード（🔴機械点／🔵視準点／🟢測点）を選んで測点をタップすると設定でき、機械点からの<b>距離と角度</b>が図面に表示されます。点が無い場所をタップした場合は、図面から座標を算出して「表に追加」できます。</p>
+        <p>1. 「図面PDF/画像を登録」…現場ごとに図面を保存します。「図面を表示」で図面を開き、<b>📐位置合わせ</b>で座標が分かっている測点を2点以上タップすると、図面と座標が結び付きます（3点目で誤差を確認できます）。図面を差し替えると、位置合わせはリセットされます。</p>
+        <p>2. 「座標読取（範囲指定）」…図面が開きます。図面を拡大し、座標が書いてある部分を「▭ 範囲指定」でなぞって「＋ 登録」。他にも座標があれば続けて範囲指定→登録を繰り返し（「✋ 移動」で図面を動かせます）、最後に「▶ 座標変換開始」を押すと「ポイント名 X Y」を自動で読み取り、確認画面を経て計算点一覧に取り込みます。確認画面では「同名の測点は座標を更新」「すべて新しい行として追加」を選べます。PDFに文字情報がある範囲は誤読なし、無い範囲はOCR（読み違いの可能性あり）です。⚠の行は読取に自信がないため、元データと見比べて数値を修正してください。</p>
+        <p>3. 図面上では 🔴機械点・🔵視準点・🟢選択した測点 が半透明の丸で表示されます。計算点一覧の測点名（または#）をタップして測点を選んでから「図面を表示」を押すと、その測点が緑丸で表示されます。</p>
+        <p>4. 図面上でも、モード（🔴機械点／🔵視準点／🟢測点）を選んで点をタップすると設定でき、機械点からの<b>距離と角度</b>が図面に表示されます。点が無い場所をタップした場合は、図面から座標を算出して「表に追加」できます。</p>
+        <p>5. 図面画面のボタン：「⤢ 全体」で全体表示、「🎯 選択点へ」で選択中の測点へ移動、「Aa 名前」で点名の表示／非表示、「済 表示」で測定済の文字表示を切り替えます。</p>
         <p>※ 図面の座標精度は、位置合わせでタップした位置の精度に依存します。拡大して正確にタップしてください。読取ライブラリは初回のみ通信します。</p>
         <br>
+        <p><strong>【測定完了マーク（日別保存）】</strong></p>
+        <p>1. 図面画面で点を<b>長押し</b>すると、オレンジの丸で「測定完了」のマークが付きます（もう一度長押しすると解除）。</p>
+        <p>2. 「💾 測定保存」で、その日の分を日別に保存します。同じ日に保存済みの場合は上書きの確認が出ます。日付が変わると、前日の未保存分は自動で日別データに退避されます。</p>
+        <p>3. 「📋 測定結果」で保存済みの日別データを一覧表示します。「確認」で図面上に表示（「確認を終了」で戻る）、「削除」で削除、「Excel」で書き出しができます。</p>
+        <br>
         <p><strong>【歪み補正】</strong></p>
-        <p>・位置合わせ点が4点以上あると縦横別縮尺を自動補正、3点以上で各点の残差を近傍に配分するため、位置合わせした点そのものはズレません。「ズレ」が大きい点（⚠）はタップし直してください。</p>
+        <p>・位置合わせ点が4点以上あると縦横別縮尺を自動補正、3点以上で各点の残差を近傍に配分するため、位置合わせした点そのものはズレません。「ズレ」が大きい点（⚠）はタップし直してください。位置合わせ画面の「歪み補正」で「自動」「なし（2点式）」を切り替えられます。</p>
         <br>
         <p><strong>【JWWで通り芯を測点化（誤差0）】</strong></p>
-        <p>1. 計算点一覧に境界点（点名・X・Y）を入れておく。2.「JWWで通り芯を測点化」でJWW（.jww／.bak）を選ぶ。3. 図面上の点名と境界点が自動で対応付けられ、最大残差が表示されます。4. 通り芯は「レイヤA-A」または「赤の一点鎖線（線色8）」を自動認識し、交点を厳密に計算します。名前を直して追加してください。※境界点が「点」図形で、点名の文字の近くにある図面が対象です。</p>
+        <p>1. 計算点一覧に境界点（点名・X・Y）を入れておく。2.「JWWで通り芯を測点化」でJWW（.jww／.bak）を選ぶ。3. 図面上の点名と境界点が自動で対応付けられ、最大残差が表示されます。4. 通り芯は「レイヤA-A」または「赤の一点鎖線（線色8）」を自動認識し、交点を厳密に計算します。小数桁数（6桁／4桁／3桁）を選び、名前を直して「計算点一覧へ追加」してください。※境界点が「点」図形で、点名の文字の近くにある図面が対象です。</p>
+        <br>
         <p><strong>【JWW連携について】</strong></p>
         <p>JWW内で「測定」→「座標測定」を選択し、基準点（機械設置点）を指定。視準点を選択後、「測定結果書き込み」で座標値を記録し、本ツールに貼り付けてご使用ください。</p>
       </div>
@@ -2036,9 +2085,9 @@ function t1ExportCSV() {
     const y = document.getElementById('t1_y_' + row.id)?.value || '';
     const get = id => document.getElementById(id)?.textContent || '';
     const dir = dirLabel(document.getElementById('t1_dir_' + row.id)?.dataset.dir || 'R');
-    csv += `${name},${x},${y},${get('t1_dist_' + row.id)},${get('t1_right_' + row.id)},${get('t1_left_' + row.id)},${get('t1_deg_' + row.id)},${get('t1_min_' + row.id)},${get('t1_sec_' + row.id)},${dir}\n`;
+    csv += `${csvQ(name)},${x},${y},${get('t1_dist_' + row.id)},${get('t1_right_' + row.id)},${get('t1_left_' + row.id)},${get('t1_deg_' + row.id)},${get('t1_min_' + row.id)},${get('t1_sec_' + row.id)},${dir}\n`;
   });
-  downloadFile('座標計算結果.csv', csv, 'text/csv;charset=utf-8;');
+  downloadFile(exportFileName('座標計算結果', 'csv'), csv, 'text/csv;charset=utf-8;');
 }
 
 function t1ExportExcel() {
@@ -2054,7 +2103,7 @@ function t1ExportExcel() {
       get('t1_dist_' + row.id), get('t1_right_' + row.id), get('t1_left_' + row.id),
       get('t1_deg_' + row.id), get('t1_min_' + row.id), get('t1_sec_' + row.id), dir]);
   });
-  exportExcelWithStripe(headers, rows, '座標計算結果.xlsx', 'Sheet1');
+  exportExcelWithStripe(headers, rows, exportFileName('座標計算結果', 'xlsx'), 'Sheet1');
 }
 
 function t1ExportTSV() {
@@ -2260,10 +2309,10 @@ function t2ExportCSV() {
     const name = getNameVal(row.id, 't2');
     const get = id => { const el = document.getElementById(id + row.id); return el ? (el.value !== undefined ? el.value : el.textContent) : ''; };
     const dir = dirLabel(document.getElementById('t2_dir_' + row.id)?.dataset.dir || 'R');
-    csv += [name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
+    csv += [csvQ(name), get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
             get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')].join(',') + '\n';
   });
-  downloadFile('距離角度計算結果.csv', csv, 'text/csv;charset=utf-8;');
+  downloadFile(exportFileName('距離角度計算結果', 'csv'), csv, 'text/csv;charset=utf-8;');
 }
 
 function t2ExportExcel() {
@@ -2276,7 +2325,7 @@ function t2ExportExcel() {
     rows.push([name, get('t2_dist_'), get('t2_deg_'), get('t2_min_'), get('t2_sec_'), dir,
                get('t2_right_'), get('t2_left_'), get('t2_cx_'), get('t2_cy_')]);
   });
-  exportExcelWithStripe(headers, rows, '距離角度計算結果.xlsx', 'Sheet1');
+  exportExcelWithStripe(headers, rows, exportFileName('距離角度計算結果', 'xlsx'), 'Sheet1');
 }
 
 // =============================================
@@ -2360,13 +2409,144 @@ function exportExcelWithStripe(headers, rows, filename, sheetName) {
   XLSX.writeFile(wb, filename);
 }
 
+/* ---------- ファイル保存の共通処理 ---------- */
+function dateStamp() {
+  const d = new Date();
+  return d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+}
+function safeName(s) { return String(s).replace(/[\\\/:*?"<>|\r\n\t]+/g, '_'); }
+/** 現場名_項目名_日付.拡張子 */
+function exportFileName(base, ext) {
+  const el = document.getElementById('header-site-name');
+  let site = el ? el.textContent.trim() : '';
+  if (!site || site === '現場未選択') site = '';
+  return safeName((site ? site + '_' : '') + base + '_' + dateStamp()) + '.' + ext;
+}
+function csvQ(v) {
+  v = String(v == null ? '' : v);
+  return /[",\r\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v;
+}
+/** Blobをファイルとして保存（iOSのホーム画面アプリでは共有メニュー経由） */
+async function saveBlob(name, blob) {
+  const standalone = window.navigator.standalone === true || (window.matchMedia && matchMedia('(display-mode: standalone)').matches);
+  if (standalone && navigator.canShare) {
+    try {
+      const f = new File([blob], name, { type: blob.type || 'application/octet-stream' });
+      if (navigator.canShare({ files: [f] })) { await navigator.share({ files: [f], title: name }); return; }
+    } catch (e) { if (e && e.name === 'AbortError') return; }
+  }
+  const a = document.createElement('a');
+  const url = URL.createObjectURL(blob);
+  a.href = url; a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(() => { URL.revokeObjectURL(url); a.remove(); }, 4000);
+}
 function downloadFile(name, content, mime) {
   const bom = '\uFEFF';
-  const blob = new Blob([bom + content], { type: mime });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = name;
-  a.click();
+  return saveBlob(name, new Blob([bom + content], { type: mime }));
+}
+
+/* ---------- 現場データのバックアップ（エクスポート／インポート） ---------- */
+function abToB64(buf) {
+  const u = new Uint8Array(buf); let s = ''; const C = 0x8000;
+  for (let i = 0; i < u.length; i += C) s += String.fromCharCode.apply(null, u.subarray(i, i + C));
+  return btoa(s);
+}
+function b64ToAb(b64) {
+  const s = atob(b64), u = new Uint8Array(s.length);
+  for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i);
+  return u.buffer;
+}
+function recToJson(rec) { return (rec && rec.bytes) ? { kind: rec.kind, name: rec.name, mime: rec.mime, bytes: abToB64(rec.bytes) } : null; }
+function recFromJson(o) { return (o && o.bytes) ? { kind: o.kind, name: o.name, mime: o.mime, bytes: b64ToAb(o.bytes) } : null; }
+
+async function backupBuildSite(id) {
+  const list = await getSiteIndex();
+  const site = list.find(s => s.id === id);
+  if (!site) return null;
+  if (id === _currentSiteId) await saveCurrentSite();   // 最新の入力を保存してから書き出す
+  let data = null;
+  try { const raw = await dbGet(siteDataKey(id)); data = raw ? JSON.parse(raw) : null; } catch (e) {}
+  const plan = await plIdbGet('plan_' + id).catch(() => null);
+  const grid = await plIdbGet('grid_' + id).catch(() => null);
+  const meas = await plIdbGet('meas_' + id).catch(() => null);
+  return { name: site.name, createdAt: site.createdAt, updatedAt: site.updatedAt, data, plan: recToJson(plan), grid: recToJson(grid), meas: meas || null };
+}
+async function backupExport(ids, label) {
+  try {
+    plBusy('バックアップを作成中…');
+    const sites = [];
+    for (const id of ids) { const s = await backupBuildSite(id); if (s) sites.push(s); }
+    plBusyOff();
+    if (!sites.length) { alert('保存できる現場がありません。'); return; }
+    const payload = { app: 'ESTELLA', type: 'site-backup', version: 1, exportedAt: new Date().toISOString(), sites };
+    const blob = new Blob([JSON.stringify(payload)], { type: 'application/json' });
+    const name = safeName('ESTELLA_バックアップ_' + (label || sites[0].name) + '_' + dateStamp()) + '.json';
+    await saveBlob(name, blob);
+    plToast('📤 ' + sites.length + '件の現場を保存しました', 2600);
+  } catch (e) {
+    plBusyOff();
+    alert('保存できませんでした。\n' + (e && e.message ? e.message : e));
+  }
+}
+function siteExportOne(id, e) { if (e) e.stopPropagation(); backupExport([id]); }
+async function backupExportCurrent() {
+  if (!_currentSiteId) { alert('現場が選択されていません。一覧の現場の右にある📤から保存できます。'); return; }
+  await backupExport([_currentSiteId]);
+}
+async function backupExportAll() {
+  const list = await getSiteIndex();
+  if (!list.length) { alert('保存できる現場がありません。'); return; }
+  await backupExport(list.map(s => s.id), '全現場');
+}
+function backupPickImport() { const el = document.getElementById('backup_file'); el.value = ''; el.click(); }
+async function backupImport(file) {
+  if (!file) return;
+  try {
+    plBusy('バックアップを読み込み中…');
+    const text = await file.text();
+    let obj;
+    try { obj = JSON.parse(text); } catch (e) { throw new Error('ファイルを読み取れません（ESTELLAのバックアップファイルではありません）'); }
+    if (!obj || obj.app !== 'ESTELLA' || obj.type !== 'site-backup' || !Array.isArray(obj.sites)) throw new Error('ESTELLAのバックアップファイルではありません');
+    const list = await getSiteIndex();
+    const names = new Set(list.map(s => s.name));
+    let n = 0;
+    for (let i = 0; i < obj.sites.length; i++) {
+      const s = obj.sites[i];
+      if (!s || !s.name) continue;
+      let name = String(s.name);
+      if (names.has(name)) {
+        const base = name + '（取込' + dateStamp() + '）';
+        name = base;
+        for (let k = 2; names.has(name); k++) name = base + '-' + k;
+      }
+      names.add(name);
+      const id = 'site_' + Date.now() + '_' + i;
+      if (s.data) await dbSet(siteDataKey(id), JSON.stringify(s.data));
+      const plan = recFromJson(s.plan); if (plan) await plIdbPut('plan_' + id, plan);
+      const grid = recFromJson(s.grid); if (grid) await plIdbPut('grid_' + id, grid);
+      if (s.meas) await plIdbPut('meas_' + id, s.meas);
+      list.push({ id, name, createdAt: s.createdAt || Date.now(), updatedAt: s.updatedAt || null });
+      n++;
+    }
+    await saveSiteIndex(list);
+    plBusyOff();
+    await renderSiteList();
+    alert(n + '件の現場を読み込みました。\n一覧から現場を選択してください。');
+  } catch (e) {
+    plBusyOff();
+    alert('読み込めませんでした。\n' + (e && e.message ? e.message : e));
+  }
+}
+
+/* ---------- 測定結果のExcel出力（date省略で保存済み全日分） ---------- */
+function mdExport(date) {
+  const days = (date ? MD.days.filter(d => d.date === date) : MD.days.slice()).sort((a, b) => a.date < b.date ? -1 : 1);
+  if (!days.length) { plToast('保存済みの測定結果がありません'); return; }
+  const rows = [];
+  days.forEach(d => d.pts.forEach((p, i) => rows.push([d.date, i + 1, p[0], p[1], p[2], p[3] || ''])));
+  exportExcelWithStripe(['測定日', 'No.', '測点名', 'X座標', 'Y座標', '機械点'], rows,
+    exportFileName('測定結果_' + (date || '全日分'), 'xlsx'), '測定結果');
 }
 
 function switchTab(id) {
@@ -2682,6 +2862,7 @@ async function renderSiteList() {
         <div class="site-meta">最終更新: ${dt}</div>
       </div>
       <span class="site-current-badge">使用中</span>
+      <button class="site-export-btn" title="この現場を保存（エクスポート）" onclick="siteExportOne('${site.id}',event)">📤</button>
       <button class="site-delete-btn" onclick="siteDelete('${site.id}',event)">🗑</button>
     </div>`;
   }).join('');
@@ -4244,12 +4425,13 @@ function mdRender() {
   h += n ? '<b>' + plEsc(c.date) + '　' + n + '点</b><small>' + (c.saved ? '保存済み' : '未保存') + '</small>' : '<small>測定完了の点はありません。図面上の点を長押しするとマークされます。</small>';
   h += '</div>' + (n ? '<button class="btn btn-primary" onclick="mdSave()">保存</button><button class="btn btn-secondary" onclick="mdClearCur()">クリア</button>' : '') + '</div>';
   h += '<div class="md-sec">保存済み（' + MD.days.length + '日分）</div>';
+  if (MD.days.length) h += '<div class="md-row"><div class="md-main"><small>保存済みの全日分をExcelファイルに書き出します</small></div><button class="btn btn-primary" onclick="mdExport()">📤 全日分Excel</button></div>';
   if (!MD.days.length) h += '<div class="md-row"><div class="md-main"><small>保存済みの測定結果はありません。</small></div></div>';
   MD.days.forEach(d => {
     const ms = [...new Set(d.pts.map(p => p[3]).filter(Boolean))];
     const kb = (JSON.stringify(d).length / 1024).toFixed(1);
     h += '<div class="md-row"><div class="md-main"><b>' + plEsc(d.date) + '　' + d.pts.length + '点</b><small>機械点：' + (ms.length ? plEsc(ms.join('、')) : '—') + '　／　約' + kb + 'KB</small></div>' +
-         '<button class="btn btn-primary" onclick="mdView(\'' + d.date + '\')">確認</button><button class="btn btn-secondary" onclick="mdDel(\'' + d.date + '\')">削除</button></div>';
+         '<button class="btn btn-primary" onclick="mdView(\'' + d.date + '\')">確認</button><button class="btn btn-secondary" onclick="mdExport(\'' + d.date + '\')">Excel</button><button class="btn btn-secondary" onclick="mdDel(\'' + d.date + '\')">削除</button></div>';
   });
   plEl('md_body').innerHTML = h;
 }
