@@ -2611,6 +2611,7 @@ let _fb = null, _shUnsub = null, _shCode = null, _shActive = false, _shState = '
 let _shTimer = null, _shRecvT = null, _shLastSig = '', _shLastEdit = 0, _shBusy = false, _shPending = false, _shRecvBusy = false, _shQueued = null;
 
 let _fbInitP = null, _fbUser = null, _loginCtl = null;
+let _shInfo = { sent: '', recv: '', skip: '' };
 function fbLoggedIn() { return !!(_fbUser && !_fbUser.isAnonymous); }
 /** Firebase初期化＋ログイン状態の確定（ログイン操作は要求しない） */
 function fbInit() {
@@ -2812,7 +2813,7 @@ async function sharePush(force, skipCheck) {
     const b = await shBuild(id);
     if (!force && b.sig === _shLastSig) { shSetState('同期済み ' + shTime()); return; }
     if (b.dataStr.length > 900000) throw new Error('入力データが大きすぎて同期できません。');
-    const upd = { name: site.name, by: SH_CLIENT, byEmail: (_fbUser && _fbUser.email) || '', rev: Date.now(), data: b.dataStr, meas: b.measStr };
+    const upd = { name: site.name, by: SH_CLIENT, byEmail: (_fbUser && _fbUser.email) || '', rev: Math.max(Date.now(), (remote.rev || 0) + 1), data: b.dataStr, meas: b.measStr };
     if (!snap.exists) upd.createdAt = Date.now();
     if (b.plan && (!remote.planMeta || remote.planMeta.key !== b.pk)) {
       if (b.plan.bytes.byteLength > SH_MAX_FILE) plToast('図面が大きすぎるため（12MB超）図面は共有されません', 4000);
@@ -2826,6 +2827,7 @@ async function sharePush(force, skipCheck) {
     await shUpdateSite(id, { shareRev: upd.rev, planKey: b.pk, gridKey: b.gk });
     _shLastSig = b.sig;
     if (_shLastEdit <= t0) { try { localStorage.removeItem(shDirtyKey(id)); } catch (e) {} }
+    _shInfo.sent = shTime();
     shSetState('同期済み ' + shTime());
   } catch (e) {
     console.warn('share push', e);
@@ -2842,7 +2844,10 @@ async function shReceive(sid, d, forced) {
   if (!forced && d.by === SH_CLIENT) return;
   const list = await getSiteIndex(), site = list.find(s => s.id === sid);
   if (!site || !site.shareCode) return;
-  if (!forced && (d.rev || 0) <= (site.shareRev || 0)) return;
+  if (!forced && (d.rev || 0) <= (site.shareRev || 0)) {
+    _shInfo.skip = shTime() + ' 相手の更新を「古い」と判断して無視（相手: ' + new Date(d.rev || 0).toLocaleTimeString('ja-JP') + ' ／ この端末の最終同期: ' + new Date(site.shareRev || 0).toLocaleTimeString('ja-JP') + '）端末の時計のズレの可能性';
+    shRender(); return;
+  }
   let dirty = false; try { dirty = localStorage.getItem(shDirtyKey(sid)) === '1'; } catch (e) {}
   if (!forced && dirty && !confirm('他の端末で更新がありました。\n\nOK＝他の端末の内容で上書き\nキャンセル＝この端末の内容を残して送信')) { sharePush(true, true); return; }
   if (sid === _currentSiteId) {
@@ -2872,6 +2877,7 @@ async function shReceive(sid, d, forced) {
       _shLastSig = (await shBuild(sid)).sig;
       plToast('🔄 他の端末の更新を反映しました', 2200);
     }
+    _shInfo.recv = shTime(); _shInfo.skip = '';
     shSetState('同期済み ' + shTime());
     renderSiteList();
   } catch (e) {
@@ -2976,7 +2982,7 @@ function shRender() {
   const el = document.getElementById('share-box'); if (!el) return;
   if (_shActive && _shCode) {
     el.innerHTML = shAcct() + '<div style="font-size:13px;color:var(--text-muted);">共有コード：<b style="font-size:18px;letter-spacing:.08em;color:var(--text);">' + shFmt(_shCode) + '</b></div>' +
-      '<div class="site-backup-note" style="margin:4px 0 8px;">状態：' + escHtml(_shState || '—') + '<br>このコードを相手に伝え、「コードで参加」を押してもらってください。</div>' +
+      '<div class="site-backup-note" style="margin:4px 0 8px;">状態：' + escHtml(_shState || '—') + '<br>最終送信 ' + escHtml(_shInfo.sent || '—') + ' ／ 最終受信 ' + escHtml(_shInfo.recv || '—') + (_shInfo.skip ? '<br><b style="color:var(--red)">' + escHtml(_shInfo.skip) + '</b>' : '') + '<br>このコードを相手に伝え、「コードで参加」を押してもらってください。</div>' +
       '<div class="site-backup-btns"><button class="btn btn-primary" onclick="shareCopy()">コピー</button><button class="btn btn-secondary" onclick="sharePush(true)">今すぐ同期</button><button class="btn btn-secondary" onclick="shareStop()">共有を解除</button></div>';
   } else {
     el.innerHTML = shAcct() + '<div class="site-backup-btns"><button class="btn btn-primary" onclick="shareStart()">🔗 使用中の現場を共有</button><button class="btn btn-secondary" onclick="shareJoin()">🔑 コードで参加</button></div>' +
