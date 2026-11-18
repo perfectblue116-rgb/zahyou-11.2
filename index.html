@@ -2973,7 +2973,7 @@ function shareCopy() {
   if (navigator.clipboard) navigator.clipboard.writeText(_shCode).then(() => plToast('共有コードをコピーしました', 1800));
   else prompt('共有コード', _shCode);
 }
-const APP_BUILD = '2026-11-18 #4';
+const APP_BUILD = '2026-11-18 #5';
 function shAcct() {
   return '<div class="site-backup-note" style="margin:0 0 6px;text-align:right">版：' + APP_BUILD + '</div>' + (fbLoggedIn()
     ? '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ' + escHtml(_fbUser.email || '') + '</span><button class="btn btn-secondary" style="min-height:32px;padding:3px 10px;font-size:13px" onclick="fbLogout()">ログアウト</button></div>'
@@ -4093,7 +4093,7 @@ async function plRemovePlan() {
   autoSave(); plUpdateStatus();
 }
 var JWSNAP = [];
-function plCollect() { return { jw: { snap: JWSNAP }, calib: PL.calib, yUp: PL.yUp, page: PL.page, fitMode: PL.fitMode, gv: { calib: GV.calib, pts: GV.pts, page: GV.page, yUp: GV.yUp, useMain: GV.useMain } }; }
+function plCollect() { return { sel: (PL.selId && document.getElementById('t1_name_' + PL.selId)) ? getNameVal(PL.selId, 't1') : '', jw: { snap: JWSNAP }, calib: PL.calib, yUp: PL.yUp, page: PL.page, fitMode: PL.fitMode, gv: { calib: GV.calib, pts: GV.pts, page: GV.page, yUp: GV.yUp, useMain: GV.useMain } }; }
 function plOnRestore(meta, opt) {
   if (opt && opt.viewing && PL.stored && PL.base && plViewerOpen()) {   // ---- 図面表示中の更新（ソフト更新） ----
     JWSNAP = (meta && meta.jw && meta.jw.snap) || [];
@@ -4102,13 +4102,14 @@ function plOnRestore(meta, opt) {
     PL.fitMode = (meta && meta.fitMode) || 'auto'; PL.hi = null; PL.free = null;
     if (!gvOpenNow()) gvRestore(meta && meta.gv);
     PL.selId = null;
-    if (opt.selName) { const r = t1Rows.find(x => getNameVal(x.id, 't1') === opt.selName); if (r) PL.selId = r.id; }
+    const selNm = (meta && meta.sel !== undefined) ? meta.sel : opt.selName;
+    if (selNm) { const r = t1Rows.find(x => getNameVal(x.id, 't1') === selNm); if (r) PL.selId = r.id; }
     plRecalcT(); plSyncAxisUI();
     if (PL.mode === 'calib') plCalRefresh();
     mdReset();
     const sid2 = _currentSiteId;
     if (sid2) mdLoad(sid2);
-    plSelectRow(PL.selId);            // 一覧の強調・情報欄・再描画
+    plSelectRow(PL.selId, false, true);            // 一覧の強調・情報欄・再描画
     plUpdateStatus(); plUpdateInfo(); plDraw();
     if (sid2) plIdbGet('plan_' + sid2).then(rec => {   // 図面ファイル自体が差し替わっていた場合だけ、開き直しを案内
       if (sid2 !== _currentSiteId || !rec || !PL.stored) return;
@@ -4128,6 +4129,7 @@ function plOnRestore(meta, opt) {
   PL.selId = null; PL.free = null; PL.T = null; PL.ranges = []; PL.rect = null;
   PL.stored = null; PL.loadedFor = null; PL.pdfDoc = null; PL.imgEl = null; PL.base = null; PL.kind = null; PL.name = '';
   plUpdateStatus(); plUpdateSelInfo();
+  if (meta && meta.sel) { const r0 = t1Rows.find(x => getNameVal(x.id, 't1') === meta.sel); if (r0) plSelectRow(r0.id, false, true); }
   mdReset();
   const sid = _currentSiteId;
   if (sid) mdLoad(sid);
@@ -4160,7 +4162,7 @@ function plNameTap(id, el) {
     try { const r = document.createRange(); r.selectNodeContents(el); r.collapse(false); const s = window.getSelection(); s.removeAllRanges(); s.addRange(r); } catch (e) {}
   }
 }
-function plSelectRow(id, scroll) {
+function plSelectRow(id, scroll, noSave) {
   PL.selId = id || null;
   if (id) PL.free = null;
   document.querySelectorAll('#t1_tbody tr.pl-sel').forEach(tr => tr.classList.remove('pl-sel'));
@@ -4170,6 +4172,7 @@ function plSelectRow(id, scroll) {
   }
   plUpdateSelInfo();
   if (plViewerOpen()) { plUpdateInfo(); plDraw(); }
+  if (!noSave && !_shApplying) autoSave();   // 選択中の測点（緑丸）も共有する
 }
 function plClearSel() { PL.free = null; plSelectRow(null); }
 function plUpdateSelInfo() {
