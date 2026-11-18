@@ -1018,6 +1018,17 @@
   }
   .site-export-btn:active { color: var(--accent); background: var(--accent-dim); }
   #pl-toast, #pl-busy { z-index: 20000 !important; }
+
+  /* ===== ログイン画面 ===== */
+  #login-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.55); z-index: 10500; align-items: center; justify-content: center; padding: 16px; padding-bottom: calc(16px + var(--sab)); }
+  #login-overlay.open { display: flex; }
+  #login-modal { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; width: 100%; max-width: 380px; max-height: 92dvh; overflow-y: auto; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+  .login-form { padding: 14px; display: flex; flex-direction: column; gap: 10px; }
+  .login-form input { width: 100%; box-sizing: border-box; background: var(--input-bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-family: var(--sans); font-size: 17px; padding: 12px 14px; min-height: 48px; outline: none; -webkit-appearance: none; }
+  .login-form input:focus { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-dim); }
+  .login-note { font-size: 13px; color: var(--text-muted); line-height: 1.6; }
+  .login-err { color: var(--red); font-size: 14px; font-weight: 700; min-height: 0; }
+  .login-form .btn { min-height: 44px; }
 </style>
 </head>
 <body>
@@ -1055,6 +1066,10 @@
       </div>
     </div>
   <div class="site-backup">
+    <div class="site-backup-title">🔗 共有（クラウド同期）</div>
+    <div id="share-box"></div>
+  </div>
+  <div class="site-backup">
     <div class="site-backup-title">💾 データの保存（エクスポート）・復元</div>
     <div class="site-backup-btns">
       <button class="btn btn-primary" onclick="backupExportCurrent()">📤 使用中の現場を保存</button>
@@ -1064,6 +1079,22 @@
     <div class="site-backup-note">入力内容・図面・位置合わせ・測定結果をファイル(.json)に保存します。各現場右の📤からも個別に保存できます。</div>
     <input type="file" id="backup_file" accept=".json,application/json" style="display:none" onchange="backupImport(this.files[0])">
   </div>
+  </div>
+</div>
+
+<!-- ログイン（社員ごとのアカウント：メール＋パスワード） -->
+<div id="login-overlay">
+  <div id="login-modal">
+    <div class="site-modal-header"><span style="font-size:20px;">🔐</span><h2>ログイン</h2></div>
+    <form class="login-form" onsubmit="fbLoginSubmit(); return false;">
+      <div class="login-note">共有（クラウド同期）を使うには、会社から発行されたアカウントでログインしてください。</div>
+      <input type="email" id="login-mail" placeholder="メールアドレス" autocomplete="username" inputmode="email" autocapitalize="none" autocorrect="off" spellcheck="false">
+      <input type="password" id="login-pass" placeholder="パスワード" autocomplete="current-password">
+      <div id="login-err" class="login-err"></div>
+      <button type="submit" id="login-btn" class="btn btn-primary site-create-btn">ログイン</button>
+      <button type="button" class="btn btn-secondary" onclick="fbResetPass()">パスワードを忘れた場合（再設定メールを送る）</button>
+      <button type="button" class="btn btn-secondary" onclick="fbLoginCancel()">キャンセル</button>
+    </form>
   </div>
 </div>
 
@@ -1330,6 +1361,18 @@
         <p>1. 画面右上の現場名（初期は「現場未選択」）をタップすると、現場の作成・切替・削除ができます。最初に現場を作成してください。<b>現場が未選択のままだと、入力内容や図面は保存されません。</b></p>
         <p>2. 入力内容・登録した図面・位置合わせ・測定結果は、<b>現場ごとに自動保存</b>されます（保存のたびに右上の「保存」が点灯）。データはこの端末のブラウザ内に保存されます。</p>
         <p>3. 端末の変更・ブラウザデータの消去・現場の削除に備え、<b>エクスポート（データの保存）</b>で定期的にファイルへ保存してください（下の【データの保存（エクスポート）・復元】参照）。</p>
+        <br>
+        <p><strong>【ログイン（共有を使う場合）】</strong></p>
+        <p>1. 共有（クラウド同期）は、<b>会社から発行された個人のアカウント（メールアドレス＋パスワード）でログイン</b>した人だけが使えます。現場名をタップ →「🔐 ログイン」、または共有の操作時に自動でログイン画面が開きます。</p>
+        <p>2. ログインは端末に保存されるので、毎回入力する必要はありません。「ログアウト」で解除できます（ログアウト中も、この端末内の入力・保存は通常どおり使えます）。</p>
+        <p>3. パスワードを忘れた場合は、ログイン画面の「パスワードを忘れた場合」から再設定メールを送れます。アカウントの追加・停止は管理者が行います。</p>
+        <br>
+        <p><strong>【現場の共有（クラウド同期）】</strong></p>
+        <p>1. 現場名をタップ →「🔗 使用中の現場を共有」で<b>共有コード</b>が発行されます。コードを相手にLINE WORKS等で伝えてください。</p>
+        <p>2. 相手は現場名をタップ →「🔑 コードで参加」でコードを入力すると、同じ現場（入力内容・図面・測定結果）が開きます。</p>
+        <p>3. 共有中の現場は、変更が数秒後に自動で送信され、他の端末の更新も自動で反映されます。一覧では現場名の前に🔗が付きます。「今すぐ同期」で手動同期もできます。</p>
+        <p>4. 同時に編集した場合は、後から保存した内容が優先されます（同じ表を同時に触らないでください）。電波が無い間はこの端末に保存し、接続後に同期します。</p>
+        <p>5. 「共有を解除」で、この端末の共有を終了します（端末内のデータは残ります）。図面は12MBまで共有できます。</p>
         <br>
         <p><strong>【座標 → 距離・角度】タブ</strong></p>
         <p>1. 「基準点設定」…機械点・視準点の<b>ポイント名は▼をタップして、計算点一覧の測点から選びます</b>（直接入力はできません）。選ぶとその測点のX・Y座標が自動で入り、視準点の方向が基準角度（0°）になります。X・Y座標は手入力もできます。</p>
@@ -2539,6 +2582,385 @@ async function backupImport(file) {
   }
 }
 
+
+/* =====================================================
+   クラウド共有（Firebase / 共有コード方式）
+   ・現場ごとに共有コードを発行 → 相手が「コードで参加」で同じ現場を取得
+   ・入力内容・測定結果は Firestore の shares/{コード}、図面は shares/{コード}/files に分割保存
+   ・変更は2.5秒後に自動送信、他端末の更新は自動受信（現場単位で「後から保存した方」を優先）
+   ===================================================== */
+const FB_CONFIG = {
+  apiKey: "AIzaSyAvEzr6BCqZ3i7yZqNtOTxq9F2m4ONQLZA",
+  authDomain: "estate-e04c7.firebaseapp.com",
+  projectId: "estate-e04c7",
+  storageBucket: "estate-e04c7.firebasestorage.app",
+  messagingSenderId: "734179009553",
+  appId: "1:734179009553:web:4b03b05123f026a3b5bdb0"
+};
+const FB_VER = '10.12.2';
+const SH_CHUNK = 600000;          // 図面分割（base64文字数）
+const SH_MAX_FILE = 12000000;     // 図面の上限（バイト）
+const SH_CLIENT = (function () {
+  let v = null;
+  try { v = localStorage.getItem('estella_client'); } catch (e) {}
+  if (!v) { v = Math.random().toString(36).slice(2) + Date.now().toString(36); try { localStorage.setItem('estella_client', v); } catch (e) {} }
+  return v;
+})();
+let _fb = null, _shUnsub = null, _shCode = null, _shActive = false, _shState = '', _shApplying = false;
+let _shTimer = null, _shRecvT = null, _shLastSig = '', _shLastEdit = 0, _shBusy = false, _shPending = false, _shRecvBusy = false, _shQueued = null;
+
+let _fbInitP = null, _fbUser = null, _loginCtl = null;
+function fbLoggedIn() { return !!(_fbUser && !_fbUser.isAnonymous); }
+/** Firebase初期化＋ログイン状態の確定（ログイン操作は要求しない） */
+function fbInit() {
+  if (_fbInitP) return _fbInitP;
+  _fbInitP = (async () => {
+    const base = 'https://www.gstatic.com/firebasejs/' + FB_VER + '/';
+    await plLoadScript(base + 'firebase-app-compat.js');
+    await plLoadScript(base + 'firebase-auth-compat.js');
+    await plLoadScript(base + 'firebase-firestore-compat.js');
+    const app = firebase.apps.length ? firebase.app() : firebase.initializeApp(FB_CONFIG);
+    const db = firebase.firestore(app);
+    try { db.settings({ experimentalAutoDetectLongPolling: true, merge: true }); } catch (e) {}
+    const auth = firebase.auth(app);
+    await new Promise(res => {
+      let first = true;
+      auth.onAuthStateChanged(u => {
+        if (u && u.isAnonymous) { auth.signOut().catch(() => {}); return; }   // 旧・匿名ログインの状態は破棄
+        _fbUser = u || null;
+        if (first) { first = false; res(); } else fbAuthChanged();
+      });
+    });
+    _fb = { db, auth };
+    return _fb;
+  })().catch(e => { _fbInitP = null; throw e; });
+  return _fbInitP;
+}
+/** ログイン済みのFirebaseを返す。interactive=true ならログイン画面を出して待つ。falseで未ログインならエラー */
+async function fbEnsure(interactive) {
+  const fb = await fbInit();
+  if (!fbLoggedIn()) {
+    if (!interactive) { const e = new Error('ログインが必要です'); e.code = 'app/login-required'; throw e; }
+    await fbLoginPrompt();
+  }
+  return fb;
+}
+function fbAuthChanged() { shareAttach(); shRender(); }
+function fbLoginPrompt() {
+  if (_loginCtl) return _loginCtl.p;
+  const ctl = {};
+  ctl.p = new Promise((res, rej) => { ctl.res = res; ctl.rej = rej; });
+  _loginCtl = ctl;
+  document.getElementById('login-err').textContent = '';
+  document.getElementById('login-pass').value = '';
+  try { const m = localStorage.getItem('estella_login_mail'); if (m) document.getElementById('login-mail').value = m; } catch (e) {}
+  document.getElementById('login-overlay').classList.add('open');
+  setTimeout(() => document.getElementById(document.getElementById('login-mail').value ? 'login-pass' : 'login-mail').focus(), 150);
+  return ctl.p;
+}
+async function fbLoginOpen() { try { await fbEnsure(true); } catch (e) { if (e && e.code !== 'app/login-cancelled') alert('ログインできませんでした。\n' + shErr(e)); } }
+async function fbLoginSubmit() {
+  if (!_loginCtl) return;
+  const mail = document.getElementById('login-mail').value.trim(), pass = document.getElementById('login-pass').value;
+  const err = document.getElementById('login-err'), btn = document.getElementById('login-btn');
+  if (!mail || !pass) { err.textContent = 'メールアドレスとパスワードを入力してください。'; return; }
+  btn.disabled = true; err.textContent = '';
+  try {
+    const { auth } = await fbInit();
+    await auth.signInWithEmailAndPassword(mail, pass);
+    try { localStorage.setItem('estella_login_mail', mail); } catch (e) {}
+    _fbUser = auth.currentUser;
+    document.getElementById('login-overlay').classList.remove('open');
+    document.getElementById('login-pass').value = '';
+    const c = _loginCtl; _loginCtl = null; c.res();
+  } catch (e) { err.textContent = shErr(e); }
+  btn.disabled = false;
+}
+function fbLoginCancel() {
+  document.getElementById('login-overlay').classList.remove('open');
+  document.getElementById('login-pass').value = '';
+  if (_loginCtl) { const c = _loginCtl; _loginCtl = null; const e = new Error('ログインがキャンセルされました'); e.code = 'app/login-cancelled'; c.rej(e); }
+}
+async function fbResetPass() {
+  const mail = document.getElementById('login-mail').value.trim(), err = document.getElementById('login-err');
+  if (!mail) { err.textContent = '先にメールアドレスを入力してください。'; return; }
+  try {
+    const { auth } = await fbInit();
+    await auth.sendPasswordResetEmail(mail);
+    err.textContent = ''; alert('パスワード再設定用のメールを送信しました。\n届かない場合は、迷惑メールフォルダの確認、または管理者へ連絡してください。');
+  } catch (e) { err.textContent = shErr(e); }
+}
+async function fbLogout() {
+  if (!confirm('ログアウトしますか？\n（この端末のデータは残ります。共有の同期は、再ログインするまで停止します）')) return;
+  try { const { auth } = await fbInit(); await auth.signOut(); } catch (e) { alert('ログアウトできませんでした。\n' + shErr(e)); }
+}
+function shErr(e) {
+  const c = (e && e.code) || '';
+  if (c === 'auth/operation-not-allowed' || c === 'auth/admin-restricted-operation') return 'Firebaseの「メール/パスワード」認証が有効になっていません。';
+  if (c === 'auth/invalid-credential' || c === 'auth/wrong-password' || c === 'auth/user-not-found' || c === 'auth/invalid-login-credentials') return 'メールアドレスまたはパスワードが違います。';
+  if (c === 'auth/invalid-email') return 'メールアドレスの形式が正しくありません。';
+  if (c === 'auth/missing-password') return 'パスワードを入力してください。';
+  if (c === 'auth/user-disabled') return 'このアカウントは無効になっています。管理者に連絡してください。';
+  if (c === 'auth/too-many-requests') return '試行回数が多すぎます。しばらく待ってから再度お試しください。';
+  if (c === 'auth/network-request-failed') return '通信できません。電波状況を確認してください。';
+  if (c === 'app/login-required') return 'ログインが必要です。';
+  if (c === 'app/login-cancelled') return 'ログインがキャンセルされました。';
+  if (c === 'auth/unauthorized-domain') return 'このサイトのドメインが Firebase の「承認済みドメイン」に登録されていません。';
+  if (c === 'permission-denied') return 'Firestoreのセキュリティルールで拒否されました。ルールの設定を確認してください。';
+  if (c === 'failed-precondition' || c === 'not-found') return 'Firestore Database が作成されていない可能性があります。';
+  return (e && e.message) ? e.message : String(e);
+}
+function shErrLabel(e) { return (e && e.code === 'app/login-required') ? 'ログインが必要です（共有パネルからログイン）' : 'エラー：' + shErr(e); }
+function shCodeGen() {
+  const A = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789', r = new Uint8Array(10);
+  crypto.getRandomValues(r);
+  return Array.from(r, v => A[v % A.length]).join('');
+}
+function shFmt(c) { return c ? c.slice(0, 5) + '-' + c.slice(5) : ''; }
+function shDirtyKey(id) { return 'estella_shdirty_' + id; }
+function shSetState(t) { _shState = t; shRender(); }
+function shTime() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+
+/* ---- 図面ファイルの分割保存・取得 ---- */
+async function shPutFile(db, code, slot, rec) {
+  const b64 = abToB64(rec.bytes), n = Math.max(1, Math.ceil(b64.length / SH_CHUNK));
+  const key = rec.name + ':' + rec.bytes.byteLength;
+  for (let i = 0; i < n; i += 8) {
+    const batch = db.batch();
+    for (let j = i; j < Math.min(n, i + 8); j++)
+      batch.set(db.doc('shares/' + code + '/files/' + slot + '_' + j), { key, i: j, n, b64: b64.slice(j * SH_CHUNK, (j + 1) * SH_CHUNK) });
+    await batch.commit();
+  }
+  return { name: rec.name, kind: rec.kind, mime: rec.mime, key, n };
+}
+async function shGetFile(db, code, slot, meta) {
+  const parts = await Promise.all(Array.from({ length: meta.n }, (_, j) => db.doc('shares/' + code + '/files/' + slot + '_' + j).get()));
+  let b64 = '';
+  for (const p of parts) {
+    if (!p.exists || p.data().key !== meta.key) throw new Error('図面データが更新中です。少し待ってから「今すぐ同期」を押してください。');
+    b64 += p.data().b64;
+  }
+  return { kind: meta.kind, name: meta.name, mime: meta.mime, bytes: b64ToAb(b64) };
+}
+
+/* ---- 現場の現在状態をまとめる ---- */
+async function shBuild(id) {
+  const d = collectData(); delete d.savedAt;
+  const dataStr = JSON.stringify(d);
+  const meas = await plIdbGet('meas_' + id).catch(() => null);
+  const measStr = meas ? JSON.stringify(meas) : '';
+  const plan = await plIdbGet('plan_' + id).catch(() => null);
+  const grid = await plIdbGet('grid_' + id).catch(() => null);
+  const pk = plan && plan.bytes ? plan.name + ':' + plan.bytes.byteLength : '';
+  const gk = grid && grid.bytes ? grid.name + ':' + grid.bytes.byteLength : '';
+  return { dataStr, measStr, plan, grid, pk, gk, sig: dataStr + '|' + measStr + '|' + pk + '|' + gk };
+}
+async function shUpdateSite(id, patch) {
+  const list = await getSiteIndex(), s = list.find(x => x.id === id);
+  if (!s) return null;
+  Object.assign(s, patch); await saveSiteIndex(list); return s;
+}
+
+/* ---- 送信 ---- */
+function sharePushSoon() {
+  if (_shApplying || !_shActive || !_currentSiteId) return;
+  _shLastEdit = Date.now();
+  try { localStorage.setItem(shDirtyKey(_currentSiteId), '1'); } catch (e) {}
+  clearTimeout(_shTimer);
+  _shTimer = setTimeout(() => sharePush(), 2500);
+}
+async function sharePush(force, skipCheck) {
+  const id = _currentSiteId;
+  if (!id || !_appReady || !_shActive) return;
+  if (_shBusy) { _shPending = true; return; }
+  _shBusy = true; shSetState('同期中…');
+  const t0 = Date.now();
+  try {
+    const list = await getSiteIndex(), site = list.find(s => s.id === id);
+    if (!site || !site.shareCode) return;
+    const { db } = await fbEnsure();
+    const ref = db.doc('shares/' + site.shareCode);
+    const snap = await ref.get(), remote = snap.exists ? snap.data() : {};
+    if (!skipCheck && snap.exists && remote.by !== SH_CLIENT && (remote.rev || 0) > (site.shareRev || 0)) {
+      _shBusy = false;
+      await shReceive(id, remote);          // 先に他端末の更新を取り込む（未同期の変更がある場合は確認が出ます）
+      return;
+    }
+    const b = await shBuild(id);
+    if (!force && b.sig === _shLastSig) { shSetState('同期済み ' + shTime()); return; }
+    if (b.dataStr.length > 900000) throw new Error('入力データが大きすぎて同期できません。');
+    const upd = { name: site.name, by: SH_CLIENT, byEmail: (_fbUser && _fbUser.email) || '', rev: Date.now(), data: b.dataStr, meas: b.measStr };
+    if (!snap.exists) upd.createdAt = Date.now();
+    if (b.plan && (!remote.planMeta || remote.planMeta.key !== b.pk)) {
+      if (b.plan.bytes.byteLength > SH_MAX_FILE) plToast('図面が大きすぎるため（12MB超）図面は共有されません', 4000);
+      else upd.planMeta = await shPutFile(db, site.shareCode, 'plan', b.plan);
+    }
+    if (b.grid && (!remote.gridMeta || remote.gridMeta.key !== b.gk)) {
+      if (b.grid.bytes.byteLength > SH_MAX_FILE) plToast('通り芯図が大きすぎるため共有されません', 4000);
+      else upd.gridMeta = await shPutFile(db, site.shareCode, 'grid', b.grid);
+    }
+    await ref.set(upd, { merge: true });
+    await shUpdateSite(id, { shareRev: upd.rev, planKey: b.pk, gridKey: b.gk });
+    _shLastSig = b.sig;
+    if (_shLastEdit <= t0) { try { localStorage.removeItem(shDirtyKey(id)); } catch (e) {} }
+    shSetState('同期済み ' + shTime());
+  } catch (e) {
+    console.warn('share push', e);
+    shSetState(navigator.onLine ? shErrLabel(e) : 'オフライン（接続後に自動で同期します）');
+  } finally {
+    _shBusy = false;
+    if (_shPending) { _shPending = false; setTimeout(() => sharePush(), 300); }
+  }
+}
+
+/* ---- 受信 ---- */
+async function shReceive(sid, d, forced) {
+  if (_shRecvBusy) { _shQueued = [sid, d, forced]; return; }
+  if (!forced && d.by === SH_CLIENT) return;
+  const list = await getSiteIndex(), site = list.find(s => s.id === sid);
+  if (!site || !site.shareCode) return;
+  if (!forced && (d.rev || 0) <= (site.shareRev || 0)) return;
+  let dirty = false; try { dirty = localStorage.getItem(shDirtyKey(sid)) === '1'; } catch (e) {}
+  if (!forced && dirty && !confirm('他の端末で更新がありました。\n\nOK＝他の端末の内容で上書き\nキャンセル＝この端末の内容を残して送信')) { sharePush(true, true); return; }
+  if (sid === _currentSiteId) {
+    const wait = 2000 - (Date.now() - _shLastEdit);
+    if (wait > 0 && !forced) { clearTimeout(_shRecvT); _shRecvT = setTimeout(() => shReceive(sid, d), wait + 50); return; }   // 入力が止まってから反映
+  }
+  _shRecvBusy = true; _shApplying = true; shSetState('受信中…');
+  try {
+    const { db } = await fbEnsure();
+    const data = d.data ? JSON.parse(d.data) : null;
+    const measObj = d.meas ? JSON.parse(d.meas) : null;
+    const keys = {};
+    for (const [slot, metaKey, idb, kName] of [['plan', 'planMeta', 'plan_', 'planKey'], ['grid', 'gridMeta', 'grid_', 'gridKey']]) {
+      const meta = d[metaKey]; if (!meta) continue;
+      const cur = await plIdbGet(idb + sid).catch(() => null);
+      const ck = cur && cur.bytes ? cur.name + ':' + cur.bytes.byteLength : '';
+      if (ck !== meta.key) { const rec = await shGetFile(db, site.shareCode, slot, meta); await plIdbPut(idb + sid, rec); }
+      keys[kName] = meta.key;
+    }
+    if (data) { data.savedAt = Date.now(); await dbSet(siteDataKey(sid), JSON.stringify(data)); }
+    if (measObj) await plIdbPut('meas_' + sid, measObj);
+    await shUpdateSite(sid, Object.assign({ shareRev: d.rev || Date.now(), updatedAt: Date.now() }, keys));
+    try { localStorage.removeItem(shDirtyKey(sid)); } catch (e) {}
+    if (sid === _currentSiteId) {
+      restoreData(data);
+      await new Promise(r => setTimeout(r, 1200));
+      _shLastSig = (await shBuild(sid)).sig;
+      plToast('🔄 他の端末の更新を反映しました', 2200);
+    }
+    shSetState('同期済み ' + shTime());
+    renderSiteList();
+  } catch (e) {
+    console.warn('share receive', e);
+    shSetState(shErrLabel(e));
+  } finally {
+    setTimeout(() => { _shApplying = false; }, 600);
+    _shRecvBusy = false;
+    if (_shQueued) { const q = _shQueued; _shQueued = null; shReceive(q[0], q[1], q[2]); }
+  }
+}
+
+/* ---- 接続・切断 ---- */
+function shareDetach() {
+  if (_shUnsub) { try { _shUnsub(); } catch (e) {} _shUnsub = null; }
+  clearTimeout(_shTimer); clearTimeout(_shRecvT);
+  _shActive = false; _shCode = null; _shLastSig = '';
+}
+async function shareAttach() {
+  shareDetach();
+  const sid = _currentSiteId;
+  const list = await getSiteIndex(), site = list.find(s => s.id === sid);
+  if (!site || !site.shareCode) { shRender(); return; }
+  _shActive = true; _shCode = site.shareCode; shSetState('接続中…');
+  try {
+    const { db } = await fbEnsure();
+    if (sid !== _currentSiteId) return;
+    _shUnsub = db.doc('shares/' + site.shareCode).onSnapshot(snap => {
+      if (!snap.exists || snap.metadata.hasPendingWrites) return;
+      shReceive(sid, snap.data());
+    }, err => shSetState('接続エラー：' + shErr(err)));
+    let dirty = false; try { dirty = localStorage.getItem(shDirtyKey(sid)) === '1'; } catch (e) {}
+    if (dirty) sharePush();
+    else shSetState('接続済み');
+  } catch (e) {
+    shSetState(navigator.onLine ? shErrLabel(e) : 'オフライン（接続後に自動で同期します）');
+  }
+}
+window.addEventListener('online', () => { if (_shActive && !_shUnsub) shareAttach(); else if (_shActive) sharePush(); });
+
+/* ---- 操作 ---- */
+async function shareStart() {
+  if (!_currentSiteId) { alert('先に現場を選択してください。'); return; }
+  const list = await getSiteIndex(), site = list.find(s => s.id === _currentSiteId);
+  if (!site || site.shareCode) return;
+  if (!confirm('「' + site.name + '」を共有します。\n入力内容・図面・測定結果がクラウドに保存され、共有コードを知っている人が同じ現場を開けるようになります。\n\nよろしいですか？')) return;
+  try {
+    await fbEnsure(true);
+    plBusy('共有を準備中…');
+    const { db } = await fbEnsure();
+    let code; for (let i = 0; i < 5; i++) { code = shCodeGen(); if (!(await db.doc('shares/' + code).get()).exists) break; }
+    await shUpdateSite(site.id, { shareCode: code, shareRev: 0 });
+    plBusyOff();
+    await shareAttach();
+    await sharePush(true, true);
+    renderSiteList();
+  } catch (e) { plBusyOff(); if (e && e.code === 'app/login-cancelled') return; alert('共有を開始できませんでした。\n' + shErr(e)); }
+}
+async function shareJoin() {
+  try { await fbEnsure(true); } catch (e) { if (e && e.code !== 'app/login-cancelled') alert('ログインできませんでした。\n' + shErr(e)); return; }
+  const raw = prompt('共有コードを入力してください');
+  if (!raw) return;
+  const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length < 8) { alert('共有コードが正しくありません。'); return; }
+  try {
+    plBusy('共有データを取得中…');
+    const { db } = await fbEnsure();
+    const snap = await db.doc('shares/' + code).get();
+    if (!snap.exists) { plBusyOff(); alert('この共有コードの現場が見つかりません。'); return; }
+    const d = snap.data(), list = await getSiteIndex();
+    const ex = list.find(s => s.shareCode === code);
+    if (ex) { plBusyOff(); alert('この現場には既に参加しています（' + ex.name + '）。'); await selectSite(ex.id); return; }
+    const names = new Set(list.map(s => s.name));
+    let name = d.name || '共有現場';
+    if (names.has(name)) { const base = name + '（共有）'; name = base; for (let k = 2; names.has(name); k++) name = base + '-' + k; }
+    const id = 'site_' + Date.now();
+    list.push({ id, name, createdAt: Date.now(), updatedAt: Date.now(), shareCode: code, shareRev: 0 });
+    await saveSiteIndex(list);
+    plBusyOff();
+    await selectSite(id);
+    await shReceive(id, d, true);
+  } catch (e) { plBusyOff(); alert('参加できませんでした。\n' + shErr(e)); }
+}
+async function shareStop() {
+  if (!_currentSiteId || !confirm('この現場の共有を解除しますか？\nこの端末のデータは残ります（クラウド上のデータも残ります）。')) return;
+  const list = await getSiteIndex(), s = list.find(x => x.id === _currentSiteId);
+  if (s) { delete s.shareCode; delete s.shareRev; delete s.planKey; delete s.gridKey; await saveSiteIndex(list); }
+  try { localStorage.removeItem(shDirtyKey(_currentSiteId)); } catch (e) {}
+  shareDetach(); shRender(); renderSiteList();
+}
+function shareCopy() {
+  if (!_shCode) return;
+  if (navigator.clipboard) navigator.clipboard.writeText(_shCode).then(() => plToast('共有コードをコピーしました', 1800));
+  else prompt('共有コード', _shCode);
+}
+function shAcct() {
+  return fbLoggedIn()
+    ? '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ' + escHtml(_fbUser.email || '') + '</span><button class="btn btn-secondary" style="min-height:32px;padding:3px 10px;font-size:13px" onclick="fbLogout()">ログアウト</button></div>'
+    : '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;color:var(--text-muted);">共有にはログインが必要です</span><button class="btn btn-primary" style="min-height:32px;padding:3px 12px;font-size:13px" onclick="fbLoginOpen()">🔐 ログイン</button></div>';
+}
+function shRender() {
+  const el = document.getElementById('share-box'); if (!el) return;
+  if (_shActive && _shCode) {
+    el.innerHTML = shAcct() + '<div style="font-size:13px;color:var(--text-muted);">共有コード：<b style="font-size:18px;letter-spacing:.08em;color:var(--text);">' + shFmt(_shCode) + '</b></div>' +
+      '<div class="site-backup-note" style="margin:4px 0 8px;">状態：' + escHtml(_shState || '—') + '<br>このコードを相手に伝え、「コードで参加」を押してもらってください。</div>' +
+      '<div class="site-backup-btns"><button class="btn btn-primary" onclick="shareCopy()">コピー</button><button class="btn btn-secondary" onclick="sharePush(true)">今すぐ同期</button><button class="btn btn-secondary" onclick="shareStop()">共有を解除</button></div>';
+  } else {
+    el.innerHTML = shAcct() + '<div class="site-backup-btns"><button class="btn btn-primary" onclick="shareStart()">🔗 使用中の現場を共有</button><button class="btn btn-secondary" onclick="shareJoin()">🔑 コードで参加</button></div>' +
+      '<div class="site-backup-note">共有コードで、入力内容・図面・測定結果を複数端末で自動同期します（通信が必要です。電波が無い間はこの端末に保存し、接続後に同期します）。</div>';
+  }
+}
+
 /* ---------- 測定結果のExcel出力（date省略で保存済み全日分） ---------- */
 function mdExport(date) {
   const days = (date ? MD.days.filter(d => d.date === date) : MD.days.slice()).sort((a, b) => a.date < b.date ? -1 : 1);
@@ -2718,6 +3140,7 @@ function autoSave() {
   if (!_currentSiteId || !_appReady) return;
   // LocalStorageに即時同期バックアップ（タスクキル対策）
   _syncBackupNow();
+  sharePushSoon();
   if (_saveTimer) clearTimeout(_saveTimer);
   _saveTimer = setTimeout(saveCurrentSite, 200);
 }
@@ -2802,6 +3225,7 @@ async function selectSite(id) {
   restoreData(saved);
   closeSiteModal();
   renderSiteList();
+  shareAttach();
 }
 
 /* 現場新規作成 */
@@ -2830,6 +3254,7 @@ async function siteDelete(id, e) {
   await plIdbDel('plan_' + id);
   await plIdbDel('meas_' + id);
   if (_currentSiteId === id) {
+    shareDetach();
     await setCurrentSiteId(null);
     document.getElementById('header-site-name').textContent = '現場未選択';
     t1Rows=[]; t1RowId=0; document.getElementById('t1_tbody').innerHTML='';
@@ -2858,7 +3283,7 @@ async function renderSiteList() {
     return `<div class="site-item${cur?' current':''}" onclick="selectSite('${site.id}')">
       <div class="site-icon">${cur?'✅':'🏗'}</div>
       <div class="site-info">
-        <div class="site-name">${escHtml(site.name)}</div>
+        <div class="site-name">${site.shareCode ? '🔗 ' : ''}${escHtml(site.name)}</div>
         <div class="site-meta">最終更新: ${dt}</div>
       </div>
       <span class="site-current-badge">使用中</span>
@@ -2870,6 +3295,8 @@ async function renderSiteList() {
 
 async function openSiteModal() {
   await renderSiteList();
+  shRender();
+  fbInit().then(() => shRender()).catch(() => {});
   document.getElementById('site-modal-overlay').classList.add('open');
   setTimeout(() => document.getElementById('site-new-input')?.focus(), 150);
 }
@@ -4349,6 +4776,7 @@ function mdToday() { const d = new Date(); return d.getFullYear() + '-' + String
 function mdR4(v) { return Math.round(v * 10000) / 10000; }
 function mdPersist() {
   if (!_currentSiteId) return Promise.resolve();
+  sharePushSoon();
   return plIdbPut(mdKey(_currentSiteId), { v: 1, cur: MD.cur, days: MD.days }).catch(e => console.warn('meas save error', e));
 }
 async function mdLoad(sid) {
@@ -5016,6 +5444,7 @@ function gvDraw() {
 
   // ---- appReady フラグON（これ以降のautoSaveが有効になる）----
   _appReady = true;
+  shareAttach();
 
   // ---- PWAバナー表示判定 ----
   showPwaBannerIfNeeded();
