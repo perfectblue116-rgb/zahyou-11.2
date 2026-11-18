@@ -2973,10 +2973,11 @@ function shareCopy() {
   if (navigator.clipboard) navigator.clipboard.writeText(_shCode).then(() => plToast('共有コードをコピーしました', 1800));
   else prompt('共有コード', _shCode);
 }
+const APP_BUILD = '2026-11-18 #4';
 function shAcct() {
-  return fbLoggedIn()
+  return '<div class="site-backup-note" style="margin:0 0 6px;text-align:right">版：' + APP_BUILD + '</div>' + (fbLoggedIn()
     ? '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">👤 ' + escHtml(_fbUser.email || '') + '</span><button class="btn btn-secondary" style="min-height:32px;padding:3px 10px;font-size:13px" onclick="fbLogout()">ログアウト</button></div>'
-    : '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;color:var(--text-muted);">共有にはログインが必要です</span><button class="btn btn-primary" style="min-height:32px;padding:3px 12px;font-size:13px" onclick="fbLoginOpen()">🔐 ログイン</button></div>';
+    : '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;font-size:13px;"><span style="flex:1;color:var(--text-muted);">共有にはログインが必要です</span><button class="btn btn-primary" style="min-height:32px;padding:3px 12px;font-size:13px" onclick="fbLoginOpen()">🔐 ログイン</button></div>');
 }
 function shRender() {
   const el = document.getElementById('share-box'); if (!el) return;
