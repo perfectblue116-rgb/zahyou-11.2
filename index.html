@@ -1004,6 +1004,19 @@
   .pl-vhead { padding-top: calc(4px + env(safe-area-inset-top, 0px)); padding-bottom: 4px; }
   #gv_panel { max-height: 30vh; }
 
+  /* ===== 測距値との差（トータルステーション用） ===== */
+  .pl-vmeas { display: flex; align-items: center; gap: 6px; flex-wrap: wrap; background: var(--surface);
+    padding: 4px 10px; border-bottom: 1px solid var(--border); }
+  .pl-vmeas-l { font-size: 14px; font-weight: 700; color: var(--text-muted); white-space: nowrap; }
+  .pl-vmeas input { width: 110px; font-family: var(--mono); font-size: 20px; padding: 4px 8px; min-height: 38px;
+    border: 2px solid var(--border); border-radius: 6px; background: var(--input-bg); -webkit-user-select: text; user-select: text; }
+  .pl-vmeas input:focus { outline: none; border-color: var(--accent); }
+  .pl-vmeas-r { flex: 1; min-width: 150px; font-weight: 800; font-size: 20px; line-height: 1.25; }
+  .pl-vmeas-r small { font-size: 13px; font-weight: 600; color: var(--text-muted); display: block; }
+  .pl-vmeas-r .md-far  { color: #c2410c; }
+  .pl-vmeas-r .md-near { color: #1d4ed8; }
+  .pl-vmeas-r .md-ok   { color: #0b6b2a; }
+
   /* ===== エクスポート／バックアップ ===== */
   .site-backup { flex-shrink: 0; border-top: 1px solid var(--border); background: var(--surface2); padding: 10px 14px; }
   .site-backup-title { font-size: 13px; font-weight: 700; color: var(--text); margin-bottom: 6px; }
@@ -1525,6 +1538,13 @@
     <select id="pl_v_page" style="display:none" onchange="plChangePage(+this.value)"></select>
   </div>
   <div class="pl-vinfo" id="pl_v_info"></div>
+  <div class="pl-vmeas" id="pl_meas" style="display:none">
+    <span class="pl-vmeas-l">📏 測距値</span>
+    <input type="text" id="pl_meas_in" inputmode="decimal" placeholder="例 12.345" autocomplete="off" oninput="plMeasUpdate()">
+    <span class="pl-vmeas-l">m</span>
+    <button class="btn btn-secondary" style="min-height:34px;padding:3px 10px;font-size:14px" onclick="plMeasClear()">消去</button>
+    <div class="pl-vmeas-r" id="pl_meas_res"></div>
+  </div>
   <div class="pl-cwrap" id="pl_cwrap"><canvas id="pl_canvas"></canvas></div>
   <div class="pl-calib" id="pl_calib">
     <div style="font-size:13px"><b>📐 位置合わせ</b>：測点を選び、<b>十字線の中心</b>を図面の点に合わせて「✛ 設定」。2点以上（3点目で誤差確認）。</div>
@@ -4432,8 +4452,38 @@ function plSetMode(m, silent) {
   }
 }
 
+/* ---------- 測距値との差（トータルステーションの測距値 → 設計距離との差を mm で表示） ---------- */
+/** 差 = 設計距離(機械点→測点) − 測距値。＋＝さらに奥（機械から遠ざける）／−＝手前（機械へ近づける） */
+let _plMeasKey = '';
+function plMeasClear() { const i = plEl('pl_meas_in'); if (i) { i.value = ''; i.focus(); } plMeasUpdate(); }
+function plMeasUpdate() {
+  const box = plEl('pl_meas'); if (!box) return;
+  const show = plViewerOpen() && PL.mode !== 'calib' && PL.mode !== 'range';
+  box.style.display = show ? '' : 'none';
+  if (!show) return;
+  const inp = plEl('pl_meas_in'), res = plEl('pl_meas_res');
+  const tg = PL.T ? plTarget() : null, m = plMechPt();
+  const key = tg ? (m.name + '|' + tg.name + '|' + tg.X + '|' + tg.Y + '|' + m.x + '|' + m.y) : '';
+  if (key !== _plMeasKey) { _plMeasKey = key; inp.value = ''; }      // 測点・機械点が変わったら入力を消す（前の測距値の流用防止）
+  if (!tg) { res.innerHTML = '<small>測点を選択すると、測距値との差を表示します</small>'; return; }
+  const c = plCalc(tg);
+  if (c.none) { res.innerHTML = '<small>機械点と同じ位置です</small>'; return; }
+  const raw = inp.value.trim().replace(/[０-９．]/g, ch => ch === '．' ? '.' : String.fromCharCode(ch.charCodeAt(0) - 0xFEE0)).replace(/,/g, '.');
+  const design = fmtDist(c.dist);
+  if (raw === '' || !/^\d+(\.\d*)?$|^\.\d+$/.test(raw)) {
+    res.innerHTML = '<small>測点 ' + plEsc(tg.name) + '　設計距離 ' + design + ' m　→ 測距値(m)を入力</small>'; return;
+  }
+  const diff = Math.round((c.dist - parseFloat(raw)) * 1000);       // mm
+  let cls, txt;
+  if (diff === 0) { cls = 'md-ok'; txt = '±0 mm　一致'; }
+  else if (diff > 0) { cls = 'md-far'; txt = '+' + diff + ' mm　奥へ'; }
+  else { cls = 'md-near'; txt = '−' + Math.abs(diff) + ' mm　手前へ'; }
+  res.innerHTML = '<span class="' + cls + '">' + txt + '</span><small>測点 ' + plEsc(tg.name) + '　設計距離 ' + design + ' m ／ 測距値 ' + plEsc(raw) + ' m</small>';
+}
+
 /* ---------- 表示更新 ---------- */
 function plUpdateInfo() {
+  plMeasUpdate();
   const el = plEl('pl_v_info'); if (!el) return;
   if (PL.mode === 'range') {
     el.innerHTML = '<div class="pl-r1">🔍 座標読取（範囲指定）</div><div><small>登録済み ' + PL.ranges.length + ' 件' + (PL.rect ? '　／　範囲を指定中（「この範囲を登録」で確定）' : '') + '</small></div>';
