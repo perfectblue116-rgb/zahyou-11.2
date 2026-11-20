@@ -5022,19 +5022,21 @@ function jwParse(buf) {
     else if (w & 0x8000) cls = cmap[w & 0x7fff];
     else { warn = '図形の途中で解析を終了しました'; break; }
     mc++;
-    if (['CDataSen', 'CDataEnko', 'CDataTen', 'CDataMoji', 'CDataSunpou'].indexOf(cls) < 0) { warn = '未対応の図形（' + cls + '）が含まれるため、' + i + '/' + n + '個目までを解析しました'; break; }
+    if (['CDataSen', 'CDataEnko', 'CDataTen', 'CDataMoji', 'CDataSunpou', 'CDataBlock'].indexOf(cls) < 0) { warn = '未対応の図形（' + cls + '）が含まれるため、' + i + '/' + n + '個目までを解析しました'; break; }
     const base = () => { u4(); const style = u8[p++]; const pen = u2(); u2(); const layer = u2(), glayer = u2(); u2(); return { cls, style, pen, layer, glayer }; };
+    // 点(CDataTen)は線種100（特殊点）のとき、仮点フラグの後に コード(4)＋倍精度2個(16) が続く（JWW Ver.7系で確認）
     const e = base();
     if (cls === 'CDataSen') e.p = [f8(), f8(), f8(), f8()];
     else if (cls === 'CDataEnko') { e.c = [f8(), f8(), f8(), f8(), f8(), f8(), f8()]; u4(); }
-    else if (cls === 'CDataTen') { e.p = [f8(), f8()]; u4(); }
+    else if (cls === 'CDataTen') { e.p = [f8(), f8()]; u4(); if (e.style === 100) { u4(); f8(); f8(); } }
+    else if (cls === 'CDataBlock') { e.b = [f8(), f8(), f8(), f8(), f8()]; e.num = u4(); }   // ブロック挿入：位置x,y・倍率x,y・回転＋ブロック番号
     else if (cls === 'CDataSunpou') {
       // 寸法図形：寸法線(線)＋寸法値(文字)＋Sxfフラグ(2)＋補助線2本(線)＋点4個。構造を読み飛ばすだけで、図形としては採用しない
       base(); p += 32;                                   // 寸法線
       base(); p += 32 + 4 + 32; str(); str();            // 寸法値（文字）
       u2();                                              // Sxfモード
       base(); p += 32; base(); p += 32;                  // 補助線1・2
-      for (let k = 0; k < 4; k++) { base(); p += 16 + 4; }   // 点×4
+      for (let k = 0; k < 4; k++) { const tb = base(); p += 16 + 4; if (tb.style === 100) p += 4 + 16; }   // 点×4（線種100の特殊点は追加20バイト）
       continue;
     }
     else { e.p = [f8(), f8(), f8(), f8()]; u4(); f8(); f8(); f8(); f8(); str(); e.text = str(); }
