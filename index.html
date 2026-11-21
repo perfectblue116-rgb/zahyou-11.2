@@ -1460,7 +1460,7 @@
     <div class="pl-sheet-b">
       <div class="help-box" id="jw_note" style="margin-bottom:8px;"></div>
       <table class="pl-rv-table">
-        <thead><tr><th style="width:34px">取込</th><th>測点名</th><th>X座標</th><th>Y座標</th></tr></thead>
+        <thead><tr><th style="width:34px">取込</th><th>測点名</th><th>X座標</th><th>Y座標</th><th>距離(m)</th><th>機械を右へ</th></tr></thead>
         <tbody id="jw_body"></tbody>
       </table>
       <div class="help-box" style="margin-top:8px;">JWWの線データ（倍精度）から交点を直接計算し、計算点一覧の境界点で位置合わせしています。タップや画像の読取は使わないため、図面の境界点が座標どおりなら誤差は0です。</div>
@@ -5147,11 +5147,12 @@ async function jwOnFile(f) {
   } catch (e) { plBusyOff(); plToast('JWWを読み込めませんでした：' + e.message, 4500); }
 }
 function jwSel(i) { JW.gi = +i; jwRender(); }
+var JW_BUILD = 'anchor-2026-11-21b';
 function jwMode(v) { JW.mode = v; jwRender(); }
 function jwDigits() { const el = plEl('jw_dig'); return el ? +el.value : 3; }
 function jwRender() {
   const c = JW.cal, g = JW.groups, note = plEl('jw_note'), body = plEl('jw_body'); let h = '';
-  h += '解析：' + JW.ents.length + '／' + JW.info.total + ' 図形' + (JW.info.warn ? '<br><b style="color:#b91c1c">⚠ ' + plEsc(JW.info.warn) + '</b>' : '') + '<br>';
+  h += '<small>JW版 ' + JW_BUILD + '</small><br>解析：' + JW.ents.length + '／' + JW.info.total + ' 図形' + (JW.info.warn ? '<br><b style="color:#b91c1c">⚠ ' + plEsc(JW.info.warn) + '</b>' : '') + '<br>';
   if (c.err) { note.innerHTML = h + '<b style="color:#b91c1c">位置合わせ不可：' + plEsc(c.err) + '</b>'; body.innerHTML = ''; JW.pts = []; return; }
   const mm = c.max * 1000, ok = mm < 0.5, mid = mm < 5;
   h += '位置合わせ：境界点 ' + c.n + '点一致／縮尺 ' + c.scale.toFixed(6) + '／回転 ' + c.rot.toFixed(4) + '°<br>最大残差 <b style="color:' + (ok ? '#047857' : mid ? '#b45309' : '#b91c1c') + '">' + mm.toFixed(3) + ' mm</b>（RMS ' + (c.rms * 1000).toFixed(3) + ' mm）' + (ok ? ' ✅ 誤差ほぼ0' : mid ? ' ⚠ 図面の境界点が座標とわずかにずれています' : ' ❌ 図面が座標どおりでない可能性。取込は推奨しません');
@@ -5170,7 +5171,16 @@ function jwRender() {
 }
 function jwRows() {
   const d = jwDigits();
-  plEl('jw_body').innerHTML = JW.pts.map((p, i) => '<tr><td style="text-align:center"><input type="checkbox" checked onchange="JW.pts[' + i + '].chk=this.checked"></td><td><input type="text" value="' + plEsc(p.name) + '" oninput="JW.pts[' + i + '].name=this.value"></td><td>' + p.X.toFixed(d) + '</td><td>' + p.Y.toFixed(d) + '</td></tr>').join('');
+  plEl('jw_body').innerHTML = JW.pts.map((p, i) => '<tr><td style="text-align:center"><input type="checkbox" checked onchange="JW.pts[' + i + '].chk=this.checked"></td><td><input type="text" value="' + plEsc(p.name) + '" oninput="JW.pts[' + i + '].name=this.value"></td><td>' + p.X.toFixed(d) + '</td><td>' + p.Y.toFixed(d) + '</td>' + jwChk(p) + '</tr>').join('');
+}
+/** 取込前の確認用：現在の機械点・視準点から見た、この測点の距離と角度 */
+function jwChk(p) {
+  try {
+    const m = t1GetMech(), v = t1GetVis(), rv = calcBearing(m.x, m.y, v.x, v.y), r = calcBearing(m.x, m.y, p.X, p.Y);
+    if (!r.dist || !rv.dist) return '<td>—</td><td>—</td>';
+    const right = (r.bearing - rv.bearing + 360) % 360, ang = right <= 180 ? right : 360 - right, dm = toDMS(ang);
+    return '<td>' + r.dist.toFixed(4) + '</td><td>' + (right <= 180 ? '右' : '左') + ' ' + dm.d + '°' + String(dm.m).padStart(2, '0') + '′' + String(dm.s).padStart(2, '0') + '″</td>';
+  } catch (e) { return '<td>—</td><td>—</td>'; }
 }
 function jwAdd() {
   const d = jwDigits(), c = JW.cal;
