@@ -5091,10 +5091,12 @@ function jwCalibrate(ents, table, scales) {
 }
 /** 機械点・視準点固定の位置合わせ：縮尺は図面縮尺(1/250なら0.25)に固定し、機械点を原点、機械点→視準点の向きを表の座標に合わせる。
  *  JWW上で機械点から測った距離・角度と一致する（最小二乗の“ならし”による数mmのズレを持ち込まない） */
-function jwAnchorT(c, mn, vn) {
+function jwAnchorT(c, mn, vn, pm, pv2) {
   if (!c || !c.m || !mn || !vn || mn === vn) return null;
   const a = c.m.find(o => o.nm === mn), v = c.m.find(o => o.nm === vn); if (!a || !v) return null;
-  const pa = c.tens[a.i], pv = c.tens[v.i], ta = c.tb[mn], tv = c.tb[vn];
+  const pa = c.tens[a.i], pv = c.tens[v.i];
+  // 固定先は、画面の機械点・視準点の座標欄の値（距離・角度の計算に実際に使われる値）。未入力なら表の座標
+  const ta = (pm && (pm.x || pm.y)) ? pm : c.tb[mn], tv = (pv2 && (pv2.x || pv2.y)) ? pv2 : c.tb[vn];
   const dx = pv[0] - pa[0], dy = pv[1] - pa[1]; if (Math.hypot(dx, dy) < 1e-9) return null;
   const ang = Math.atan2(tv.x - ta.x, tv.y - ta.y) - Math.atan2(dy, dx);   // Q=[Y(東), X(北)]
   const ar = c.S * Math.cos(ang), ai = c.S * Math.sin(ang);
@@ -5163,7 +5165,7 @@ function jwRender() {
   }
   if (!g.length) { note.innerHTML = h + '<br><b style="color:#b91c1c">通り芯（レイヤA-A／赤の一点鎖線）が見つかりません</b>'; body.innerHTML = ''; JW.pts = []; return; }
   const mn = (plEl('t1_mech_name') || {}).value ? plEl('t1_mech_name').value.trim() : '', vn = (plEl('t1_vis_name') || {}).value ? plEl('t1_vis_name').value.trim() : '';
-  const AT = JW.mode === 'ls' ? null : jwAnchorT(c, mn, vn);
+  const AT = JW.mode === 'ls' ? null : jwAnchorT(c, mn, vn, t1GetMech(), t1GetVis());
   h += '<br>位置合わせ方式：<select onchange="jwMode(this.value)"><option value="anchor"' + (AT || JW.mode !== 'ls' ? ' selected' : '') + '>機械点・視準点固定（JWWの測定値と一致）</option><option value="ls"' + (JW.mode === 'ls' ? ' selected' : '') + '>全境界点の最小二乗（従来）</option></select>' + (AT ? '<br><small>機械点「' + plEsc(mn) + '」・視準点「' + plEsc(vn) + '」を表の座標に固定／縮尺は図面縮尺に固定</small>' : (JW.mode === 'ls' ? '' : '<br><small style="color:#b91c1c">⚠ 機械点「' + plEsc(mn || '未設定') + '」' + ((c.m || []).some(o => o.nm === mn) ? '' : '【図面の点と対応なし】') + '・視準点「' + plEsc(vn || '未設定') + '」' + ((c.m || []).some(o => o.nm === vn) ? '' : '【図面の点と対応なし】') + ' のため従来方式で計算しました。<br>対応できた境界点：' + plEsc((c.m || []).map(o => o.nm).join('、')) + '</small>'));
   const gr = g[JW.gi] || g[0], it = jwIntersections(gr.lines, AT || c.T); JW.pts = it.pts.map(p => ({ ...p, chk: true })); JWSNAP = it.pts.map(p => ({ name: p.name, X: p.X, Y: p.Y })); autoSave();
   note.innerHTML = h + '<br>通り芯：<select onchange="jwSel(this.value)">' + g.map((x, i) => '<option value="' + i + '"' + (i === JW.gi ? ' selected' : '') + '>' + plEsc(x.label) + '（' + x.lines.length + '本）</option>').join('') + '</select> → 平行な線の族 ' + it.fam + '／交点 ' + it.pts.length + '点' + (it.fam < 2 ? '<br><b style="color:#b91c1c">直交する2方向の通り芯が必要です</b>' : '');
